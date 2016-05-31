@@ -1,0 +1,32 @@
+## C lib
+useDynLib(simLife, .registration = TRUE, .fixes = "C_")
+exportPattern("^[^\\C\\.]")
+
+importFrom("unfoldr", "simSpheroidSystem", "simSphereSystem", "simCylinderSystem", "updateIntersections")
+importFrom("splancs", "areapl")
+importFrom("grDevices", "chull")
+importFrom("stats", "quantile", "rnorm", "runif", "rweibull")
+importFrom("graphics", "abline", "axTicks", "axis", "box", "legend", "plot", "points", "segments")
+
+
+importFrom("GenSA","GenSA")
+importFrom("Hmisc","label")
+importFrom("lattice","densityplot")
+importFrom("parallel","parLapplyLB","clusterApply","clusterExport")
+
+# S3 methods
+S3method("rsa","prolate")
+S3method("rsa","oblate")
+S3method("rsa","cylinder")
+S3method("rsa","sphere")
+
+S3method("drawDefectProjections","oblate")
+S3method("drawDefectProjections","prolate")
+S3method("drawDefectProjections","cylinder")
+S3method("drawDefectProjections","sphere")
+
+S3method("simCrackTime","prolate")
+S3method("simCrackTime","oblate")
+S3method("simCrackTime","cylinder")
+S3method("simCrackTime","sphere")
+  
