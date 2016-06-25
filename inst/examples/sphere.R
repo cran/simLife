@@ -32,7 +32,7 @@ RET <- densifyCluster(S2, CLUST, box, ctrl, weight=10,cl = NULL)
 ## get the densified cluster
 #G <- RET$cluster
 
-#require("rgl")
+## drawing spheres (requires 'rgl') 
 #cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
 #drawSpheres <- function(S, box, ...) {
 #	X <- do.call(rbind,lapply(S,function(x) c(x$center,x$r) ))

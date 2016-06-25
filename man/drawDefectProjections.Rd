@@ -19,7 +19,7 @@ drawDefectProjections(F, D, ...)
 \method{drawDefectProjections}{sphere}(F, D, ...)
 }
 \arguments{
-\item{F}{particle system}
+\item{F}{geometry system}
 
 \item{D}{defects object}
 

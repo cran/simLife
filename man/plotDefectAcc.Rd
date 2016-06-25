@@ -28,6 +28,6 @@ Plot accumulation of defect projection areas
 }
 \details{
 Simple plotting function to visualize the process of accumulation of defect areas separately
-for interior particles and particles hitting the boundaries of the simulation box (specimen)
+for interior objects and objects hitting the boundaries of the simulation box (specimen)
 }
 

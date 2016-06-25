@@ -4,8 +4,7 @@
 \alias{simTimes}
 \title{Crack time simulation}
 \usage{
-simTimes(S, param, vickers, stress, verbose = FALSE,
-  parallel.option = getOption("parallel.option", "lapply"))
+simTimes(S, param, vickers, stress, verbose = FALSE)
 }
 \arguments{
 \item{S}{(non-overlapping) geometry system}
@@ -17,15 +16,12 @@ simTimes(S, param, vickers, stress, verbose = FALSE,
 \item{stress}{stress level}
 
 \item{verbose}{logical: ignored}
-
-\item{parallel.option}{optional: In case of \code{mclapply} the function 
-\code{mclapply} is used from the parallel package}
 }
 \value{
 list of increasing failure times
 }
 \description{
-Simulate crack times of particles
+Simulate crack times
 }
 \details{
 The function randomly generates phase dependent failure times of defect types \code{crack} and \code{delam}.
@@ -63,8 +59,7 @@ V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 
 ## show estimated densities
-multi.density.plot(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
-
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
 }
 \seealso{
 \code{\link{getCrackTime}}, \code{\link{getDelamTime}}

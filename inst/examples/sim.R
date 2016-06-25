@@ -20,5 +20,4 @@ V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 
 ## show estimated densities
-multi.density.plot(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
-
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))

@@ -9,16 +9,16 @@ simFracture(stress, S, opt, param, last.defect = FALSE, CL = NULL)
 \arguments{
 \item{stress}{applied stress level}
 
-\item{S}{non-overlapping particle system}
+\item{S}{non-overlapping geometry system}
 
 \item{opt}{control list for simulation of individual failure times}
 
 \item{param}{parameter list for generating individual failure times}
 
-\item{last.defect}{logical, \code{last.defect=FALSE} (default) return all defect 
+\item{last.defect}{logical, \code{last.defect=FALSE} (default), return either all defect 
 accumulations or only the last one}
 
-\item{CL}{optional, NULL (default) predefined clustered regions of particles}
+\item{CL}{optional, NULL (default), predefined clustered regions of objects}
 }
 \value{
 a list made up of the following objects if \code{last.defect=FALSE} (default):
@@ -36,14 +36,14 @@ Simulation of fatigue lifetime model
 We provide a wrapper function for \code{\link{simDefect}} to simulate the proposed fatigue lifetime model including
 the generation of individual failure times with additional information of the responsible accumulated defect projection
 area (simply called defect area) which leads to the failure of the system. This information is returned in the following 
-list with elements: \code{crack} the responsible defect itself, \code{T} the individual failure times of particles aggregated
-as a cluster of particles, \code{ferrit} whether any secondary phase (here called \code{ferrit}) is involved for overall failure,
+list with elements: \code{crack} the responsible defect itself, \code{T} the individual failure times of objects aggregated
+as a cluster of objects, \code{ferrit} whether any secondary phase (here called \code{ferrit}) is involved for overall failure,
 \code{interior} whether the defect occurs in the interior or at the boundaries of the simulation box. The optional
-list argument \code{CL} defines clustered regions, see \code{\link{simCluster}}, of particles sticking together more close than
+list argument \code{CL} defines clustered regions, see \code{\link{simCluster}}, of objects sticking together more close than
 others. This is useful in case one also wishes to model densely lieing agglomerations of objects (i.e. clusters of particles or 
 fibers) as an obvious phenomenon of some specimen in mind. This list is made up of the following elements: \code{id}, the id of
 the region, \code{center} the center point of the corresponding region, \code{r} the radius (as the Euclidean distance from the 
-center point) which within all particles belong to this region, \code{interior} whether any particle within radius \code{r} hits 
+center point) which within all objects belong to this region, \code{interior} whether any object within radius \code{r} hits 
 the box boundaries of the simulation box.
 }
 \examples{
@@ -100,11 +100,9 @@ L <- plotDefectAcc(RET,last.path=TRUE)
 
 ## plot last 
 ## get particle id numbers of last cluster
-#qid <- LR$id
-#require(rgl)
-#open3d()
-#spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
+# qid <- LR$id
+# spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
 ## drawing only last cluster leading to failure
-#drawDefectProjections(S,list(LR))
+# drawDefectProjections(S,list(LR))
 }
 

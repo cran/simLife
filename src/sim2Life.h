@@ -70,7 +70,15 @@ class CDefect {
      last = this;
    }
 
-  ~CDefect() {};
+
+   /**
+    * @brief the destructor is recursively called on next linked
+    *        list element downwards of current head node
+    */
+  ~CDefect() {
+     if(next!=0)
+       delete next;
+   };
 
    inline double distance(OBJECT_T &s) {
      return m_object.distance(s);
@@ -132,6 +140,10 @@ class CDefect {
       last = current->last;
    }
 
+   /** using R's memory management */
+   void* operator new (size_t size);
+   void operator delete (void *p);
+
  public:
    OBJECT_T m_object;
 
@@ -143,6 +155,15 @@ class CDefect {
    PointVector2d m_points;
 
 };
+
+template<class T>
+void* CDefect<T>::operator new (size_t size) {
+    return Calloc(size,STGM::CDefect<T>);
+    // ... then calling constructor (placement new)
+}
+
+template<class T>
+void CDefect<T>::operator delete (void *p) { Free(p); }
 
 /// conversion templates for spheroid, cylinder, sphere
 template<class T> struct ClusterList {
@@ -197,13 +218,19 @@ struct Converter {
 
      // convert object from R list
      Type sp = fun(VECTOR_ELT(Rs,id-1));
-     STGM::CDefect<Type> *defect = Calloc(1,STGM::CDefect<Type>);
-       try {
-           new(defect)STGM::CDefect<Type>(sp,type,time);
-       } catch(...) {
-           error("Init 'CDefect' failed: Allocation error.");
-       }
-       return defect;
+     /* using R's memory management as overloaded new/delete ...*/
+     STGM::CDefect<Type> *defect = new STGM::CDefect<Type>(sp,type,time);
+
+     /* ...alternatively ... */
+     //STGM::CDefect<Type> *defect = Calloc(1,STGM::CDefect<Type>);
+     //try {
+     //   new(defect)STGM::CDefect<Type>(sp,type,time);
+     //} catch(...) {
+     //   error("Init 'CDefect' failed: Allocation error.");
+     //}
+     //STGM::CDefect<Type> *defect = new STGM::CDefect<Type>(sp,type,time);
+
+     return defect;
   };
 };
 

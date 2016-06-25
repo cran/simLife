@@ -9,16 +9,16 @@ simDefect(stress, S, CLT, opt)
 \arguments{
 \item{stress}{stress level}
 
-\item{S}{non-overlapping particle system}
+\item{S}{non-overlapping geometry system}
 
-\item{CLT}{the start (initialized) cluster of particles}
+\item{CLT}{the start (initialized) cluster of objects}
 
 \item{opt}{control list of fixed parameters, see \code{\link{simTimes}}}
 }
 \value{
 list of clusters, the following values are returned for further analysis:
 					\itemize{
-						\item{id}{ the particle id numbers in the accumulated defect}
+						\item{id}{ the object id numbers in the accumulated defect}
 						\item{n}{ internal: accumulated defect id, zero means last element of cluster}
 						\item{B}{ corresponding defect types of projected objects}
 						\item{interior}{ whether each object is interior or not}
@@ -48,9 +48,9 @@ Further, the argument \code{opt} defines the list of controls of fixed parameter
 \code{vickers} Vickers hardness, \code{distTol} as a (proportion) factor of the minium the corresponding square roots of 
 projected defect areas (might be less than 0.95 but in general depends on the inverstigated material structure),
 \code{inAreafactor} default set to value 1.56, \code{outAreafactor} default set to value 1.43, \code{pointsConvHull} number of
-sampling points of each particle projection border for approximating the defect projection convex area, \code{scale} scaling factor
+sampling points of each objects projection border for approximating the defect projection convex area, \code{scale} scaling factor
 (should be set to \code{1e+06} for \eqn{\mu m^2}), \code{pl} print level of information output with some verbose messages for any value
-larger than 100. In this case only the accumulated defect projections after adding the last individual failed particle are returned.
+larger than 100. In this case only the accumulated defect projections after adding the last individual failed object are returned.
 Here the last element contains the defect with the highest projected area which leads to the overall failure.
 }
 \author{

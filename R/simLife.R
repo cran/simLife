@@ -135,6 +135,7 @@ getCylinderProjection <- function(S, B=rep(1,length(S)), draw=TRUE, conv = TRUE,
 	
 	P <- .Call(C_GetCylinderProjection,S,B,np)
 	if(draw) {
+	  if (requireNamespace("rgl", quietly=TRUE)) {		
 		invisible(lapply(P,
 				function(x) {
 					if(attr(x,"type")) {
@@ -144,11 +145,15 @@ getCylinderProjection <- function(S, B=rep(1,length(S)), draw=TRUE, conv = TRUE,
 				}
 			)
 		)
+	  } else warning("Please install 'rgl' package from CRAN repositories for use of drawing.")
 	}
 	if(conv) {		
 		A <- convH(do.call(rbind,P),fill=FALSE)
-		if(draw) 
-		 rgl::polygon3d(A[[2]][,1],A[[2]][,2],rep(0,NROW(A[[2]])),fill=FALSE)
+		if(draw) {
+		  if (requireNamespace("rgl", quietly=TRUE)) 		
+			rgl::polygon3d(A[[2]][,1],A[[2]][,2],rep(0,NROW(A[[2]])),fill=FALSE)
+		  else warning("Please install 'rgl' package from CRAN repositories for use of drawing.")
+	 	}
 		return (list("points"=P,"convH"=A))
 	}
 	return (P)
@@ -179,12 +184,17 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 	
 	P <- .Call(C_GetSphereProjection,S,np)
 	if(draw) {
-	  invisible(lapply(P,function(x) { rgl::polygon3d(x[,1],x[,2],rep(0,NROW(x)),fill=TRUE) }))
+	  if (requireNamespace("rgl", quietly=TRUE))		
+	   invisible(lapply(P,function(x) { rgl::polygon3d(x[,1],x[,2],rep(0,NROW(x)),fill=TRUE) }))
+   	  else warning("Please install 'rgl' package from CRAN repositories for use of drawing.")
 	}
 	if(conv) {		
 		A <- convH(do.call(rbind,P),fill=FALSE)
-		if(draw) 
+		if(draw) { 
+		  if (requireNamespace("rgl", quietly=TRUE))	
 			rgl::polygon3d(A[[2]][,1],A[[2]][,2],rep(0,NROW(A[[2]])),fill=FALSE)
+		  else warning("Please install 'rgl' package from CRAN repositories for use of drawing.")
+	  	}
 		return (list("points"=P,"convH"=A))
 	}
 	return (P)
@@ -193,7 +203,7 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 
 #' Crack time simulation
 #'
-#' Simulate crack times of particles
+#' Simulate crack times
 #' 
 #' The function randomly generates phase dependent failure times of defect types \code{crack} and \code{delam}.
 #' The accumulation structure of defects is initialized containing the failure times of objects in ascending order.
@@ -212,14 +222,11 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 #' @param vickers		   vickers hardness
 #' @param stress    	   stress level
 #' @param verbose 		   logical: ignored
-#' @param parallel.option  optional: In case of \code{mclapply} the function 
-#' 									 \code{mclapply} is used from the parallel package
 #' 
 #' @return list of increasing failure times
 #' @seealso \code{\link{getCrackTime}}, \code{\link{getDelamTime}}
 #' @example inst/examples/sim.R
-simTimes <- function(S, param, vickers, stress, verbose = FALSE,
-						parallel.option = getOption("parallel.option","lapply")) {	
+simTimes <- function(S, param, vickers, stress, verbose = FALSE) {	
 	## sim times			    
 	CLT <- simCrackTime(S,stress,vickers,param)
 	
@@ -250,7 +257,7 @@ simTimes <- function(S, param, vickers, stress, verbose = FALSE,
 #' @param lam 	  intensity parameter of the underlying Poisson point process
 #' @param box	  the simulation box
 #' @param mu	  reference direction of particles, here \code{mu=c(0,1,0)} (default)
-#' @param verbose logical, not ues yet 
+#' @param verbose logical, not used yet 
 #' 
 #' @return 	list of spheroids  
 #' @references  \itemize{
@@ -342,19 +349,19 @@ extractClusters <- function(clust,area) {
 #' \code{vickers} Vickers hardness, \code{distTol} as a (proportion) factor of the minium the corresponding square roots of 
 #' projected defect areas (might be less than 0.95 but in general depends on the inverstigated material structure),
 #' \code{inAreafactor} default set to value 1.56, \code{outAreafactor} default set to value 1.43, \code{pointsConvHull} number of
-#' sampling points of each particle projection border for approximating the defect projection convex area, \code{scale} scaling factor
+#' sampling points of each objects projection border for approximating the defect projection convex area, \code{scale} scaling factor
 #' (should be set to \code{1e+06} for \eqn{\mu m^2}), \code{pl} print level of information output with some verbose messages for any value
-#' larger than 100. In this case only the accumulated defect projections after adding the last individual failed particle are returned.
+#' larger than 100. In this case only the accumulated defect projections after adding the last individual failed object are returned.
 #' Here the last element contains the defect with the highest projected area which leads to the overall failure. 
 #' 
 #' @param stress	stress level
-#' @param S   		non-overlapping particle system
-#' @param CLT  		the start (initialized) cluster of particles
+#' @param S   		non-overlapping geometry system
+#' @param CLT  		the start (initialized) cluster of objects
 #' @param opt	    control list of fixed parameters, see \code{\link{simTimes}}
 #'
 #' @return 		    list of clusters, the following values are returned for further analysis:
 #' 					\itemize{
-#' 						\item{id}{ the particle id numbers in the accumulated defect}
+#' 						\item{id}{ the object id numbers in the accumulated defect}
 #' 						\item{n}{ internal: accumulated defect id, zero means last element of cluster}
 #' 						\item{B}{ corresponding defect types of projected objects}
 #' 						\item{interior}{ whether each object is interior or not}
@@ -392,24 +399,24 @@ simDefect <- function(stress,S,CLT,opt) {
 #' We provide a wrapper function for \code{\link{simDefect}} to simulate the proposed fatigue lifetime model including
 #' the generation of individual failure times with additional information of the responsible accumulated defect projection
 #' area (simply called defect area) which leads to the failure of the system. This information is returned in the following 
-#' list with elements: \code{crack} the responsible defect itself, \code{T} the individual failure times of particles aggregated
-#' as a cluster of particles, \code{ferrit} whether any secondary phase (here called \code{ferrit}) is involved for overall failure,
+#' list with elements: \code{crack} the responsible defect itself, \code{T} the individual failure times of objects aggregated
+#' as a cluster of objects, \code{ferrit} whether any secondary phase (here called \code{ferrit}) is involved for overall failure,
 #' \code{interior} whether the defect occurs in the interior or at the boundaries of the simulation box. The optional
-#' list argument \code{CL} defines clustered regions, see \code{\link{simCluster}}, of particles sticking together more close than
+#' list argument \code{CL} defines clustered regions, see \code{\link{simCluster}}, of objects sticking together more close than
 #' others. This is useful in case one also wishes to model densely lieing agglomerations of objects (i.e. clusters of particles or 
 #' fibers) as an obvious phenomenon of some specimen in mind. This list is made up of the following elements: \code{id}, the id of
 #' the region, \code{center} the center point of the corresponding region, \code{r} the radius (as the Euclidean distance from the 
-#' center point) which within all particles belong to this region, \code{interior} whether any particle within radius \code{r} hits 
+#' center point) which within all objects belong to this region, \code{interior} whether any object within radius \code{r} hits 
 #' the box boundaries of the simulation box.
 #' 
 #' 
 #' @param stress		applied stress level
-#' @param S 			non-overlapping particle system
+#' @param S 			non-overlapping geometry system
 #' @param opt			control list for simulation of individual failure times
 #' @param param 		parameter list for generating individual failure times
-#' @param last.defect 	logical, \code{last.defect=FALSE} (default) return all defect 
+#' @param last.defect 	logical, \code{last.defect=FALSE} (default), return either all defect 
 #' 						accumulations or only the last one
-#' @param CL			optional, NULL (default) predefined clustered regions of particles
+#' @param CL			optional, NULL (default), predefined clustered regions of objects
 #' 
 #' @return 		a list made up of the following objects if \code{last.defect=FALSE} (default):
 #' 				\itemize{
@@ -449,7 +456,7 @@ simFracture <- function(stress, S, opt, param, last.defect = FALSE, CL = NULL) {
 #' Plot accumulation of defect projection areas
 #' 
 #' Simple plotting function to visualize the process of accumulation of defect areas separately
-#' for interior particles and particles hitting the boundaries of the simulation box (specimen)
+#' for interior objects and objects hitting the boundaries of the simulation box (specimen)
 #' 
 #' @param CL 			cluster of aggregated (densified objects), see \code{\link{simFracture}}
 #' @param last.path		logical, \code{last.path=FALSE} (default), show the critical area accumulation path
@@ -631,21 +638,24 @@ woehler <- function(S, CL, param, opt, stress, cl = NULL,
 						parallel.option = getOption("parallel.option","lapply"))
 {			
 	simF <- function(s,...) simFracture(s,...,last.defect=TRUE)$cl_info					
-	func <- get(parallel.option)
+		
+	if(parallel.option=="mclapply" && !requireNamespace("parallel", quietly=TRUE))
+		stop("package 'parallel' is required to run this function in parallel mode.")
+	fun <- get(parallel.option)
 	
 	p <- tryCatch({
 			if(!is.null(cl)) {
 				m <- min(length(stress),length(cl))
 				if(any(class(cl) %in% c("MPIcluster"))) {
 					cat("Using MPI cluster...\n")
-					parLapplyLB(cl[seq_len(m)], stress, simF, opt=opt, param=param, CL=CL, S=S)
+					parallel::parLapplyLB(cl[seq_len(m)], stress, simF, opt=opt, param=param, CL=CL, S=S)
 				} else {		
-					cat("Using some other type of cluster...\n")
-					do.call(c,clusterApply(cl[seq_len(m)], .splitList(stress, length(cl)), func, simF,
+					cat("Using some other type of cluster...\n")					
+					do.call(c,parallel::clusterApply(cl[seq_len(m)], .splitList(stress, length(cl)), fun, simF,
 									opt=opt, param=param, CL=CL, S=S))
 				}
-			} else {
-	 			func(stress, simF, opt=opt, param=param, CL=CL, S=S)		
+			} else {				
+	 			fun(stress, simF, opt=opt, param=param, CL=CL, S=S)		
 			}						
 		  },error=function(e) {
 			  structure(e,class=c("error","condition"),
@@ -656,7 +666,7 @@ woehler <- function(S, CL, param, opt, stress, cl = NULL,
 	  return (p)
 	as.data.frame(
 	  do.call(rbind,
-	     func(seq_len(length(p)),
+	     fun(seq_len(length(p)),
 		   function(i) c("stress"=stress[[i]],as.vector(p[[i]])))
  	  )
  	)	
@@ -755,6 +765,9 @@ woehlerDiagram <- function(W, yrange = NULL,
 #' @return 	   draw projections and the convex hull (if enabled) in a 3d plot
 #'			   return area of polygon and points of convex hull  
 drawProjection <- function(E, conv = TRUE, np=25) {
+	if (!requireNamespace("rgl", quietly=TRUE))
+	  stop("Please install 'rgl' package from CRAN repositories before running this function.")
+	
 	.pointsOnEllipse <- function(E,t) {		
 		xt <- E$center[1] + E$ab[1]*cos(t)*cos(E$phi)-E$ab[2]*sin(t)*sin(E$phi)
 		yt <- E$center[2] + E$ab[1]*cos(t)*sin(E$phi)+E$ab[2]*sin(t)*cos(E$phi)
@@ -790,7 +803,7 @@ drawProjection <- function(E, conv = TRUE, np=25) {
 #' The defect object as returned by \code{\link{simFracture}} 
 #' and used to show the accumulated defects.
 #'  
-#' @param F    		particle system
+#' @param F    		geometry system
 #' @param D 		defects object
 #' @param ...  		further arguments passed to 
 #'			   		 \code{\link{getSphereProjection}},					 

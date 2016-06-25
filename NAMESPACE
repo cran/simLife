@@ -8,12 +8,6 @@ importFrom("grDevices", "chull")
 importFrom("stats", "quantile", "rnorm", "runif", "rweibull")
 importFrom("graphics", "abline", "axTicks", "axis", "box", "legend", "plot", "points", "segments")
 
-
-importFrom("GenSA","GenSA")
-importFrom("Hmisc","label")
-importFrom("lattice","densityplot")
-importFrom("parallel","parLapplyLB","clusterApply","clusterExport")
-
 # S3 methods
 S3method("rsa","prolate")
 S3method("rsa","oblate")

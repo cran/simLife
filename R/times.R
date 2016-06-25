@@ -71,8 +71,10 @@ simCrackTime.prolate <- function(S,stress,vickers,param,
 			 "T"=uv[2],"B"=1,"A"=0,"label"=label)
 	}		
  }
- func <- get(parallel.option)
- func(S,simT) 
+ if(parallel.option=="mclapply" && !requireNamespace("parallel", quietly=TRUE))
+  stop("package 'parallel' is requiered to run this function in parallel mode.")
+ fun <- get(parallel.option)
+ fun(S,simT) 
 }
 
 #' @rdname simCrackTime
@@ -95,8 +97,11 @@ simCrackTime.cylinder <- function(S,stress,vickers,param,
 				"T"=uv,"B"=1,"A"=0,"label"=label)
 	}	
   }
-  func <- get(parallel.option)
-  func(S,simT) 
+  
+  if(parallel.option=="mclapply" && !requireNamespace("parallel", quietly=TRUE))
+	  stop("package 'parallel' is requiered to run this function in parallel mode.")
+  fun <- get(parallel.option)
+  fun(S,simT) 
 }
 
 #' @rdname simCrackTime
@@ -111,8 +116,10 @@ simCrackTime.sphere <- function(S,stress,vickers,param,
 		  else getDelamTime(E,stress,param$F)
 	list("id"=E$id,"U"=Inf,"V"=uv,"T"=uv,"B"=1,"A"=0,"label"=label)		
  }	
- func <- get(parallel.option)
- func(S,simT) 
+ if(parallel.option=="mclapply" && !requireNamespace("parallel", quietly=TRUE))
+	 stop("package 'parallel' is requiered to run this function in parallel mode.")
+ fun <- get(parallel.option)
+ fun(S,simT) 
 }
 
 
@@ -198,19 +205,21 @@ getDelamTime <- function(E,stress,param,inF=0.5, outF=0.65){
 #' Plot the estimated densities which result from the randomly 
 #' generated individual failure times.
 #' 
-#' @param data  	the data frame
-#' @param main 		main plot title
+#' @param dv	  	named list of individual failure times
+#' @param main 		title of the plot (optional)
 #' @param ...		arguments passed to \code{\link[lattice]{densityplot}}
 #' 
 #' @example inst/examples/sim.R
-multi.density.plot <- function(data,main="Crack time density estimation", ...) {
-	# combines multiple density plots together when given a list
-	df=data.frame();
-	for(n in names(data)){
-		idf=data.frame(x=data[[n]],label=rep(n,length(data[[n]])))
-		df=rbind(df,idf)
+showDensity <- function(dv,main="Crack time density estimation", ...) {
+	if (!requireNamespace("lattice", quietly=TRUE))
+	 stop("Please install package 'lattice' from CRAN repositories before running this function.")
+		
+	data=data.frame();
+	for(i in names(dv)){
+		idf=data.frame(x=dv[[i]], "type" = rep(i,length(dv[[i]])))
+		data=rbind(data,idf)
 	}	
-	lattice::densityplot(~x, data = df, groups = label, plot.points = FALSE,
-		ref = FALSE, auto.key = list(space = "top"), main = main,...)
 	
+	lattice::densityplot(~x, data = data, groups = data$type,
+			plot.points = FALSE, ref = FALSE, auto.key = list(space = "top"), main = main,...)	
 }

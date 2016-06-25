@@ -41,13 +41,12 @@ SF <- RET$S
 ## clustered areas
 CLF <- RET$cluster
 
-require("rgl")
-cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
-cylinders3d(SF, box, col=cols)	
+## 'rgl' plot of cylinders
+# cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
+# cylinders3d(SF, box, col=cols)	
 
 #path <- "/"
 #save(SF,file=paste0(path,"test_S.rda"))
 #save(CLF,file=paste0(path,"test_CL.rda"))
-
 	
 }

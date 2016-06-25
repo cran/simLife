@@ -51,9 +51,7 @@ L <- plotDefectAcc(RET,last.path=TRUE)
 
 ## plot last 
 ## get particle id numbers of last cluster
-#qid <- LR$id
-#require(rgl)
-#open3d()
-#spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
+# qid <- LR$id
+# spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
 ## drawing only last cluster leading to failure
-#drawDefectProjections(S,list(LR))
+# drawDefectProjections(S,list(LR))

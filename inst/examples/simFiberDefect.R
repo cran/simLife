@@ -31,7 +31,7 @@ T <- unlist(sapply(CLT,`[[`,"T"))
 V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 ## plot estimated densities
-multi.density.plot(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
 
 ## accumulation: may take some time
 RET <- simDefect(stress,SF,CLT,opt)
