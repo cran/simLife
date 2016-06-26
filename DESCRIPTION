@@ -1,6 +1,6 @@
 Package: simLife
 Title: Simulation of Fatigue Lifetimes
-Version: 0.2.1
+Version: 0.2.3
 Date: 2016-05-31
 Authors@R: c(person("Markus Baaske", role = c("aut", "cre"),
 			 email = "markus.baaske@math.tu-freiberg.de"),
@@ -18,5 +18,5 @@ Repository: CRAN
 LazyData: no
 RoxygenNote: 5.0.1
 NeedsCompilation: yes
-Packaged: 2016-06-24 09:24:35 UTC; franke
-Date/Publication: 2016-06-25 19:07:52
+Packaged: 2016-06-25 21:10:33 UTC; root
+Date/Publication: 2016-06-26 00:09:44

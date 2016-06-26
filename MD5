@@ -1,4 +1,4 @@
-b3db8f53278b8fe211a91217582cebd5 *DESCRIPTION
+861db3e54388ea5fd0db25b49ce176a1 *DESCRIPTION
 4e9dbaf7a57e705659b76953f9c46f10 *NAMESPACE
 9062f34544752457e8bfb59e17dbcea3 *R/densify.R
 fe8158a22f4e992f41abf037a5ba8ccf *R/rsaSpheroids.r
@@ -47,11 +47,11 @@ f457924ff4e8b3d16923f1d547b69d6f *man/simParticle.Rd
 4fb218381b503c18886526e4e487f369 *man/woehler.Rd
 9b05ea213738fb3515293603fa18f57a *man/woehlerDiagram.Rd
 0baf5ff3d55f44cd76e860fef321c79a *src/GeometricPrimitives.cpp
-7e35882b991f1fc2cb6a54848a128d62 *src/GeometricPrimitives.h
+4fb2e10632b3c031e85e0ad4c94ad887 *src/GeometricPrimitives.h
 3f56d9e5736c6667d02cc9a38d0ea234 *src/Makevars
 353582e48847a9a929af4c72daf4c376 *src/Vector.h
-ea1148898cbc96491fa0e73761affbd1 *src/cluster.cpp
+4d0da0ecceea58c7cf165b51032792d1 *src/cluster.cpp
 d953b24249317856f914863a17f71015 *src/cluster.h
 6fbccda85f546f5b05e623242ed252b7 *src/convert.cpp
-b5fb578ccbf01b33327ed64b66878349 *src/sim2Life.cpp
+4b1e171df98f8fad147ad21229d80310 *src/sim2Life.cpp
 688c23252b0afa65dc58b7d9ebdb446a *src/sim2Life.h

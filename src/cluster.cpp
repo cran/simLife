@@ -128,7 +128,7 @@ SEXP Cluster(SEXP R_spheres, SEXP R_s, SEXP R_cond) {
           PROTECT(R_tmp = allocVector(VECSXP,4));
           PROTECT(R_ids = allocVector(INTSXP,ids.size()));
           PROTECT(R_ctr = allocVector(REALSXP,dim));
-          Memcpy(INTEGER(R_ids),ids.data(),ids.size());
+          Memcpy(INTEGER(R_ids),&ids[0],ids.size());
           Memcpy(REAL(R_ctr),cluster[k].m_p,dim);
 
           SET_VECTOR_ELT(R_tmp,0,R_ids);

@@ -37,7 +37,7 @@ inline double cross3d(const STGM::CPoint2d &x, const STGM::CPoint2d &y, const ST
 STGM::PointVector2d convexHull2d(STGM::PointVector2d P) {
     int n = P.size(), k = 0;
     STGM::PointVector2d H(2*n);
-    sort(P.begin(), P.end());
+    std::sort(P.begin(), P.end());
     // construct the lower convex hull
     for (int i = 0; i < n; ++i) {
             while (k >= 2 && cross3d(H[k-2], H[k-1], P[i]) <= 0) k--;

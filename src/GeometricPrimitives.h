@@ -821,9 +821,7 @@ namespace STGM {
       * @return -1 or 0  or 1
       */
      int whichSide(STGM::CPoint2d p, int idx ) {
-       STGM::CPoint2d p1(PointOnEllipse(m_psi[idx]));
        STGM::CPoint2d p2(PointOnEllipse(2*M_PI-m_psi[idx]));
-
        return SGN( m_minorAxis[m_j]*(p[0]-p2[0])-m_minorAxis[m_i]*(p[1]-p2[1]));
      }
 
