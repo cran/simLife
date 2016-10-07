@@ -37,10 +37,10 @@ A simple RSA algorithm
 }
 \details{
 The function generates a non-overlapping configuration of spheres, spheroids or spherocylinders
-with respect to periodic boundary conditions by sequentially adding the given objects at new random 
-positions in the simulation box while keeping their sizes and orientations. If there 
-is an overlap detected the position is rejected and some new random position is 
-generated until all particles have put inside or the maximum number of allowed 
+with respect to periodic boundary conditions by sequentially adding the given objects at new random
+positions in the simulation box while keeping their sizes and orientations. If there
+is an overlap detected the position is rejected and some new random position is
+generated until all particles have put inside or the maximum number of allowed
 iterations is reached. This function is most suited for volume fractions less than 0.15.
 }
 \author{

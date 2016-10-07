@@ -4,8 +4,7 @@
 \alias{woehler}
 \title{Woehler experiment}
 \usage{
-woehler(S, CL, param, opt, stress, cl = NULL,
-  parallel.option = getOption("parallel.option", "lapply"))
+woehler(S, CL, param, opt, stress, fun = lapply, cl = NULL)
 }
 \arguments{
 \item{S}{non-overlapping object system}
@@ -18,10 +17,10 @@ woehler(S, CL, param, opt, stress, cl = NULL,
 
 \item{stress}{list of stress levels}
 
-\item{cl}{optional, parallel cluster object (see \code{\link[snow]{makeCluster}})}
+\item{fun}{optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
+for to parallelize simulations}
 
-\item{parallel.option}{optional, if \code{parallel.option=mclapply} the function \code{\link[parallel]{mclapply}}
-is used, otherwise the function \code{lapply}.}
+\item{cl}{optional, parallel cluster object, see 'snow'}
 }
 \value{
 matrix of failure times, first colunm corresponds to the times
@@ -31,52 +30,55 @@ matrix of failure times, first colunm corresponds to the times
 Simulate a Woehler experiment
 }
 \details{
-As done in a real life scenario the Woehler diagram measures the applied stress amplitude versus load cycles.
-For each given stress level the function is intended to be an all-in-one wrapper function for fatigue
-lifetime model simulations for different stress levels which returns a matrix of failure times where 
-each row corresponds to one stress level. The Woehler experiments can be simulated in parallel based
-on using the package \code{snow} possibly together with \code{Rmpi} for an \code{MPI} cluster object.
+As done in a real life scenario the Woehler diagram measures the applied stress amplitude versus number
+of cycles to failure. For each given stress level the function is intended to be an all-in-one wrapper
+function for fatigue lifetime model simulations for different stress levels which returns a matrix of
+failure times where each row corresponds to one stress level. The Woehler experiments can be simulated
+in parallel based on using the package \code{snow} possibly together with \code{Rmpi} for an \code{MPI}
+cluster object.
 }
 \examples{
 \dontrun{
 
-## For use with parallel package
+## For use with parallel package (recommended)
 # library("parallel")
 # options(mc.cores=detectCores())
 # options(parallel.option="mclapply")
 
-# primary particles and secondary phase (ferrit) 
-# which is already clustered and densified 
-data(AL2MC_20p_k10_F2p_S)	
+data(AL2MC_20p_k10_F2p_S)
 
-# simulation parameters 
-opt <- list("vickers"=107,"distTol"=0.5,
-			"inAreafactor"=1.56, "outAreafactor"=1.43, 
-			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
+## generate individual failure times
+opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
+		"inAreafactor"=1.56, "outAreafactor"=1.43,
+		"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
 
-# lifetimes parameters
-par <- list("P"=c(0.01,10^12,10,105,-13,0.05),
-			"F"=c(0.01,10^12,10,98,-12,0.05))
-	
-nsim <- 15
+par <- list("P"=c(0.01,6,0.5,75,-15,3),
+		"F"=c(0,0,0,105,-12,1),
+		"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+				"pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
+
+# number of simulations at each stress level
+nsim <- 5
+# stress levels
 stress <- as.list(seq(from=90,to=140,by=10))
 
-## For use of SOCKS or MPI cluster do the following
+## using no cluster
+cl <- NULL
+## or for use of SOCKS or MPI cluster
 # library("snow")
 # cl <- makeCluster(6)
-## or	
+## or
 # cl <- makeSOCKcluster(6)
 # clusterEvalQ(cl,library("simLife"))
 
-cl <- NULL	
 # the following code may take some time
-W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim))
+W <- woehler(SF, CL=NULL, par, opt, stress=rep(stress,each=nsim))
 
-woehlerDiagram(W, yrange=c(65,145), cl=cl)
+woehlerDiagram(W, NULL, yrange=c(80,145), cl=cl)
 
-## do not forget to stop cluster if used 
+## do not forget to stop cluster if used
 # stopCluster(cl)
-	
+
 }
 }
 \author{

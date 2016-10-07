@@ -5,7 +5,7 @@
 \title{Generate clustered regions}
 \usage{
 simCluster(S, theta, lam, box, cond = list(eps = 0, minSize = 1),
-  verbose = FALSE, pl = 0)
+  check_overlap = FALSE, verbose = FALSE, pl = 0)
 }
 \arguments{
 \item{S}{(non-overlapping) geometry objects system}
@@ -18,6 +18,8 @@ simCluster(S, theta, lam, box, cond = list(eps = 0, minSize = 1),
 
 \item{cond}{conditioning object for cluster algorithm, see details}
 
+\item{check_overlap}{logical, \code{check_overlap=FALSE} (default) overlapping spheres}
+
 \item{verbose}{logical, \code{verbose=FALSE} (default) additional information}
 
 \item{pl}{integer, \code{pl=0} for no additional information}
@@ -29,7 +31,7 @@ a list of the following element:
 							\item{center}{ the center of enclosing ball }
 							\item{r}{ the radius}
 							\item{interior}{ equals to \code{0} if any of the enclosed ball objects
-								hit the boundaries of the simulation box and equals \code{1} otherwise} 
+								hit the boundaries of the simulation box and equals \code{1} otherwise}
 						}
 }
 \description{

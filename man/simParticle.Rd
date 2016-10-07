@@ -15,7 +15,7 @@ simParticle(theta, lam, box, mu = c(0, 1, 0), verbose = FALSE)
 
 \item{mu}{reference direction of particles, here \code{mu=c(0,1,0)} (default)}
 
-\item{verbose}{logical, not ues yet}
+\item{verbose}{logical, not used yet}
 }
 \value{
 list of spheroids
@@ -26,10 +26,10 @@ Poisson spheroid system
 \details{
 The function generates a constant size Poisson spheroid system with intensity parameter \code{lam}
 and random planar (with respect to the xz plane) orientation distribution. The spheroids are labeled
-by \eqn{P} to denote the primary particle phase which usually plays the role of some reinforcement 
+by \eqn{P} to denote the primary particle phase which usually plays the role of some reinforcement
 material type in real life specimen. In order to simulate the fatigue lifetime model, see \code{\link{simDefect}},
 a non-overlapping configuration of particles is required which could be generated for instance by application of
-the the well-known random sequential adsorption (RSA) method, see \code{\link{rsa}}. Alternatively the Force-biased 
+the the well-known random sequential adsorption (RSA) method, see \code{\link{rsa}}. Alternatively the Force-biased
 algorithm could be used as well, see reference below.
 }
 \references{

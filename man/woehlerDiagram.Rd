@@ -4,22 +4,21 @@
 \alias{woehlerDiagram}
 \title{Plot Woehler diagram}
 \usage{
-woehlerDiagram(W, yrange = NULL, cols = c("#0000FF", "#00FF00", "#FF0000",
-  "#FF00FF", "#FFFF00", "#00FFFF"), syms = c(0, 1, 2, 5, 6),
-  main = "Woehler experiment", ...)
+woehlerDiagram(W, W2 = NULL, yrange = NULL, main = "",
+  legend.text = NULL, ...)
 }
 \arguments{
 \item{W}{results from function \code{\link{woehler}}}
 
+\item{W2}{optional, \code{W2=NULL} (default) woheler results}
+
 \item{yrange}{range of stress levels, the min/max values of stress levels (default)}
-
-\item{cols}{vector of colors, possibly being replicated}
-
-\item{syms}{vector of symbol ids, see \code{pch} from \code{\link{par}}}
 
 \item{main}{main title of the plot}
 
-\item{...}{graphic parameters passed to function \code{\link{points}}}
+\item{legend.text}{text for the legend as vector of strings, \code{NULL} (default) for no legend}
+
+\item{...}{graphic parameters passed \code{legend}}
 }
 \value{
 \code{NULL}
@@ -28,9 +27,10 @@ woehlerDiagram(W, yrange = NULL, cols = c("#0000FF", "#00FF00", "#FF0000",
 Plot a Woehler diagram for simulated Woehler experiments
 }
 \details{
-The simulated results of the Woehler experiments are summarized in 
+The simulated results of the Woehler experiments are summarized in
 the load-cycle diagram as usually done in the Woehler diagram.
-The arguments of \code{syms} and \code{cols} are recycled if \code{nsim} 
-exceeds one of their lengths.
+}
+\author{
+Markus Baaske
 }
 

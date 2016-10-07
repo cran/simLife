@@ -23,8 +23,8 @@ drawDefectProjections(F, D, ...)
 
 \item{D}{defects object}
 
-\item{...}{further arguments passed to 
-\code{\link{getSphereProjection}},                     
+\item{...}{further arguments passed to
+\code{\link{getSphereProjection}},
  \code{\link{getSpheroidProjection}},
  \code{\link{getCylinderProjection}}}
 }
@@ -35,7 +35,7 @@ drawDefectProjections(F, D, ...)
 Draw defect projections for spheroids, spherocylinders or spheres.
 The method first constructs the projected objects sampling some points
 on the borders and calculates the convex hull of such points.
-The defect object as returned by \code{\link{simFracture}} 
+The defect object as returned by \code{\link{simFracture}}
 and used to show the accumulated defects.
 }
 

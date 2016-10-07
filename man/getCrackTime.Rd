@@ -4,7 +4,7 @@
 \alias{getCrackTime}
 \title{Generate individual fracture time}
 \usage{
-getCrackTime(theta, a, b, stress, vickers, param)
+getCrackTime(theta, a, b, stress, vickers, p, const)
 }
 \arguments{
 \item{theta}{colatitude angle}
@@ -17,7 +17,9 @@ getCrackTime(theta, a, b, stress, vickers, param)
 
 \item{vickers}{Vickers hardness}
 
-\item{param}{simulation parameter set}
+\item{p}{simulation parameter set}
+
+\item{const}{constant parameters for crack}
 }
 \value{
 numeric, the individual fracture time
@@ -26,15 +28,15 @@ numeric, the individual fracture time
 Generate individual defect time for particle fracture
 }
 \details{
-The particle fracture (crack) is assumed to happen orthogonal to the major axis direction along 
+The particle fracture (crack) is assumed to happen orthogonal to the major axis direction along
 the maximum minor axis length. Thus the projection area can be easily computed for the purpose
-of defect accumulation. The parameter set is made up of six parameters. Here only the second and 
-third parameters are used to simulate the defect \code{crack} times. The failure times follow a 
+of defect accumulation. The parameter set is made up of six parameters. Here only the second and
+third parameters are used to simulate the defect \code{crack} times. The failure times follow a
 Weibull distribution with scale parameter \eqn{p2*a^2/(b*\sigma*cos\theta*Hv)} and shape parameter
 \eqn{p3} where \eqn{\sigma} denotes the stress, \eqn{a} the minor axis length and
-\eqn{Hv} the Vickers hardness. The angle \eqn{\theta} is measured between the rotational axis 
+\eqn{Hv} the Vickers hardness. The angle \eqn{\theta} is measured between the rotational axis
 and the axis of main load direction. In this way we account for the orientation of particles (spheroids)
-when generating fracture times dependent on their tendency to be more or less oriented towards the 
+when generating fracture times dependent on their tendency to be more or less oriented towards the
 main load direction.
 }
 \author{

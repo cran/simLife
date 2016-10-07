@@ -32,6 +32,8 @@ template<class T>
 inline const T &MIN(const T &a, const T &b)
 {return b < a ? (b) : (a);}
 
+using namespace std;
+
 namespace STGM {
 
 

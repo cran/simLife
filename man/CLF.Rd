@@ -4,7 +4,7 @@
 \name{CLF}
 \alias{CLF}
 \title{A cluster configuration of fibers}
-\format{A list of length 11 containing lists of fibers belonging to the 
+\format{A list of length 11 containing lists of fibers belonging to the
 		   corresponding cluster}
 \usage{
 data(AL2MC_15p_k10_F2p_CL)

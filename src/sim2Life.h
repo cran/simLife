@@ -3,11 +3,13 @@
 
 #include <R.h>
 #include <Rdefines.h>
-#include <list>
 
+#include <list>
 #include "GeometricPrimitives.h"
 
+using namespace std;
 
+#define M_PI_4		0.78539816339744830962	/* pi/4 */
 #define GET_OBJECT_CLASS(RS) translateChar(asChar(getAttrib( (RS), R_ClassSymbol)))
 
 extern SEXP getListElement (SEXP list, const char *str);
@@ -26,7 +28,7 @@ extern "C" {
     SEXP GetPointsForConvexHull(SEXP R_ellipses, SEXP R_n);
 
     SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_areaOut,
-                   SEXP R_print_level, SEXP R_env);
+    		 SEXP R_Tmax,SEXP R_print_level, SEXP R_env);
 
     SEXP GetSpheroidProjection(SEXP R_spheroids, SEXP R_crack_type);
     SEXP GetSpheroidOnlyProjectionArea(SEXP R_spheroids);
@@ -57,6 +59,7 @@ class CDefect {
             m_object(object),
             m_type(type),
             m_size(1),
+			m_broken(0),
             m_area(0),
             m_time(time), next(0), last(0)
    {
@@ -147,7 +150,7 @@ class CDefect {
  public:
    OBJECT_T m_object;
 
-   int m_type, m_id, m_inner, m_interior, m_size, m_num, m_np;
+   int m_type, m_id, m_inner, m_interior, m_size, m_num, m_np, m_broken;
    double m_area, m_time;
    const char * m_label;
 

@@ -24,8 +24,8 @@ list of spheroids
 Poisson spheroid system
 }
 \details{
-The function generates a system of constant size Poisson spheroidal objects with intensity \code{lam} and random planar 
-orientation distribution. The spheroidal objects are labeled by \eqn{F} to denote the secondary 
+The function generates a system of constant size Poisson spheroidal objects with intensity \code{lam} and random planar
+orientation distribution. The spheroidal objects are labeled by \eqn{F} to denote the secondary
 particle phase, denoting for instance some disturbing ferrit inclusions in real life specimen.
 }
 \seealso{

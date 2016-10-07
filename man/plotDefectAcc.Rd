@@ -2,32 +2,36 @@
 % Please edit documentation in R/simLife.R
 \name{plotDefectAcc}
 \alias{plotDefectAcc}
-\title{Draw accumulation path defect areas}
+\title{Draw accumulation path damage areas}
 \usage{
-plotDefectAcc(CL, last.path = FALSE, log.axis = "x",
-  main = "Accumulation of particle's projection areas")
+plotDefectAcc(CL, last.path = FALSE, log.axis = "x", use.col = TRUE,
+  main = "", ...)
 }
 \arguments{
-\item{CL}{cluster of aggregated (densified objects), see \code{\link{simFracture}}}
+\item{CL}{result of accumulation simulation, see \code{\link{simFracture}}}
 
 \item{last.path}{logical, \code{last.path=FALSE} (default), show the critical area accumulation path
 leading to the overall failure}
 
 \item{log.axis}{character, \code{log.axis='x'} (default), switch to logarithmic scale}
 
+\item{use.col}{optional, do colering or black and gray values}
+
 \item{main}{optional, main title of the plot}
+
+\item{...}{optional, graphical parameters, see \code{\link{par}}}
 }
 \value{
-the accumulation path of defect areas as a list containing the
+the accumulation path of damage areas as a list containing the
 						starting and end points of each horizontal line (the current convex hull area value)
-					    together with the starting point of the next convex hull of defect projections and 
-					    whether the defect occured in the interior or at the boundaries of the simulation box
+					    together with the starting point of the next convex hull of damage projections and
+					    whether the damage occured in the interior or at the surface of the simulation box
 }
 \description{
-Plot accumulation of defect projection areas
+Plot accumulation of damage projection areas
 }
 \details{
-Simple plotting function to visualize the process of accumulation of defect areas separately
-for interior objects and objects hitting the boundaries of the simulation box (specimen)
+Simple plotting function to visualize the process of damage accumulation separately
+for interior objects and objects hitting the surface of the simulation box (specimen)
 }
 

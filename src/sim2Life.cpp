@@ -7,6 +7,7 @@
  *
  * @author M. Baaske
  */
+
 #include <R_ext/Rdynload.h>
 
 #include "sim2Life.h"
@@ -32,8 +33,9 @@ extern STGM::Cylinders convert_C_Cylinders(SEXP R_cylinders);
  * @return      points that are the convex hull
  */
 inline double cross3d(const STGM::CPoint2d &x, const STGM::CPoint2d &y, const STGM::CPoint2d &z) {
-    return (y[0]-x[0]) * (z[1]-x[1]) - (y[1]-x[1]) * (z[0]-x[0]);
+  return (y[0]-x[0]) * (z[1]-x[1]) - (y[1]-x[1]) * (z[0]-x[0]);
 }
+
 STGM::PointVector2d convexHull2d(STGM::PointVector2d P) {
     int n = P.size(), k = 0;
     STGM::PointVector2d H(2*n);
@@ -237,37 +239,6 @@ SEXP GetCylinderProjection(SEXP R_cylinders, SEXP R_crack_type,SEXP R_np) {
   return R_ret;
 }
 
-/**\brief Get the minimum distance of two spheroids
- *        approximated by sphero-cylinder distance
- *
- *        Comment: Used for UpdateIntersections
- *
- * @param R_spheroids
- * @param R_cmp
- * @param R_crack_type
- * @param R_crack_cmp
- * @return approximate minimum distance
- *
-SEXP GetMinimumDistance(SEXP R_spheroids, SEXP R_cmp, SEXP R_crack_type, SEXP R_crack_cmp) {
-  double dist=0, mindist=HUGE_VAL;
-
-  STGM::CSpheroid scmp = convert_C_Spheroid(R_cmp);
-  scmp.setCrackType(asInteger(AS_INTEGER(R_crack_cmp)));
-
-  STGM::Spheroids spheroids = convert_C_Spheroids(R_spheroids);
-
-  int n = spheroids.size();
-  for(int i=0;i<n; i++) {
-       spheroids[i].setCrackType(INTEGER(AS_INTEGER(R_crack_type))[i]);
-       dist = spheroids[i].spheroidDistanceAsCylinder(scmp);
-
-       if(dist<mindist)
-         mindist=dist;
-  }
-  return ScalarReal(mindist);
-}
-*/
-
 #define PRINT_HEAD_INFO {                               \
   Rprintf("\n");                                        \
   Rprintf(" %4s \t %4s \t %8s \t %12s" ,                \
@@ -285,7 +256,8 @@ typedef struct {
   double distTol,
          areaMax,
          areaIn,
-         areaOut;
+         areaOut,
+		 Tmax;
 } siminfo_t;
 
 
@@ -300,7 +272,7 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
   STGM::CDefect<T> *head, *last;
 
   double minDist=0,
-         MPI4 = info.distTol*sqrt(M_PI_4); // to compare to minDist (distTol is weight factor < 1)
+         MPI4 = info.distTol*std::sqrt(M_PI_4); // to compare to minDist (distTol is weight factor < 1)
   int i=1, k=0, nclust=0, N=converter.N;
 
   head = converter(0);
@@ -310,18 +282,29 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
   while(i < N && !stopit)
   {
       head = converter(i);
+
+      // check for maximum time i.e. treat object as a runout
+      if(head->m_time > info.Tmax) {
+    	  stopit=TRUE;
+    	  break;
+      }
+
       cl.push_back(head);
       // project single object, store points
       head->project();
       // check if projected defect of single
       // object is already large enough
-      if(head->m_inner && head->m_area > info.areaIn) {
-          stopit = TRUE;
-          break;
-      } else if(!head->m_inner && head->m_area > info.areaOut) {
-          stopit = TRUE;
-          break;
-      }
+	  if(head->m_inner && head->m_area > info.areaIn) {
+		  stopit = TRUE;
+		  head->m_broken = 1;
+		  Rprintf("Single particle exceeds critical area (internal).\n");
+		  break;
+	  } else if(!head->m_inner && head->m_area > info.areaOut) {
+		  stopit = TRUE;
+		  head->m_broken = 1;
+		  Rprintf("Single particle exceeds critical area (surface).\n");
+		  break;
+	  }
 
       //T &scmp = head->m_object;
       jt = cl.begin(); endit = cl.end(); --endit;
@@ -330,9 +313,9 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
       {
          last = *jt;
          minDist = last->descent(head);
-          //Rprintf("d: %f, head: %f, last: %f \n",minDist,sqrt(head->m_area),sqrt(last->m_area));
+          //Rprintf("d: %f, head: %f, last: %f \n",minDist,std::sqrt(head->m_area),std::sqrt(last->m_area));
           // check minimum distance
-          if(minDist < MPI4*MIN(sqrt(head->m_area),sqrt(last->m_area))) {
+          if(minDist < MPI4*MIN(std::sqrt(head->m_area),std::sqrt(last->m_area))) {
               // update points
               head->update(last);
               // append nodes
@@ -397,16 +380,18 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
 
   if(PL>100) {
     for(jt = cl.begin(); jt != cl.end(); ++jt) {
-        if( (*jt)->m_size > 1)
+        if( (*jt)->m_size > 1 || (*jt)->m_broken)
           ++nclust;
     }
 
-    PROTECT(R_cl = allocVector(VECSXP,nclust));   ++nProtected;
+    PROTECT(R_cl = allocVector(VECSXP,nclust));
+    ++nProtected;
+
     for(jt = cl.begin(); jt != cl.end(); ++jt)
     {
         p = *jt;
         m = p->m_size;
-        if(!(m>1)) {
+        if(!(m>1) && !p->m_broken) {
             //  calling first destructor p->~CDefect() automatically
             delete p;
             continue;
@@ -456,6 +441,10 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       p = cl.back();
       m = p->m_size;
       maxSize = m;
+      // result
+      PROTECT(R_cl = allocVector(VECSXP,1));
+      ++nProtected;
+      // further list objects
       PROTECT(R_id = allocVector(INTSXP,m));
       PROTECT(R_num = allocVector(INTSXP,m));
       PROTECT(R_type = allocVector(INTSXP,m));
@@ -492,7 +481,6 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       SET_VECTOR_ELT(R_tmp,7,R_label);
       setAttrib(R_tmp, R_NamesSymbol, R_names);
 
-      PROTECT(R_cl = allocVector(VECSXP,1)); ++nProtected;
       SET_VECTOR_ELT(R_cl,0,R_tmp);
       UNPROTECT(8);
   }
@@ -508,7 +496,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
 
 
 SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_areaOut,
-               SEXP R_print_level, SEXP R_env)
+		 SEXP R_Tmax, SEXP R_print_level, SEXP R_env)
 {
     SEXP Rs = R_NilValue;
     if(isNull(R_env) || !isEnvironment(R_env))
@@ -522,7 +510,7 @@ SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_ar
     else error("Expression does not evaluate to a promise.");
 
     siminfo_t info = {asReal(AS_NUMERIC(R_dist)),0,asReal(AS_NUMERIC(R_areaIn)),
-                      asReal(AS_NUMERIC(R_areaOut))};
+                      asReal(AS_NUMERIC(R_areaOut)),asReal(AS_NUMERIC(R_Tmax))};
 
     const char * name = GET_OBJECT_CLASS(Rs);
     if( !std::strcmp(name, "prolate" ) || !std::strcmp(name, "oblate" ) || !std::strcmp(name, "spheroid" )) {
@@ -607,7 +595,7 @@ static R_CallMethodDef CallEntries[] = {
         CALLDEF(GetCylinderProjection,3),
         CALLDEF(GetSphereProjection,2),
         CALLDEF(Cluster,3),
-        CALLDEF(SimDefect,7),
+        CALLDEF(SimDefect,8),
         CALLDEF(GetSpheroidBothProjection,1),
         CALLDEF(GetSpheroidOnlyProjectionArea,1),
       {NULL, NULL, 0}

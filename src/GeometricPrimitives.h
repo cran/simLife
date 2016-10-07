@@ -16,6 +16,8 @@
 extern "C" void sdm(const double *r12,  const double *u1, const double *u2, const  double *lh1p, const double *lh2p, double *d);
 extern "C" void ContactRadius(double *u, double *li, double *lj, double *ri, double *rj,double *R, double *d, double *rmax);
 
+using namespace std;
+
 namespace STGM {
 
   /** some type definitions */

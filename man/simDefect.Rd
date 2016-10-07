@@ -2,7 +2,7 @@
 % Please edit documentation in R/simLife.R
 \name{simDefect}
 \alias{simDefect}
-\title{Defect accumulation}
+\title{Local damage accumulation}
 \usage{
 simDefect(stress, S, CLT, opt)
 }
@@ -36,16 +36,16 @@ list of clusters, the following values are returned for further analysis:
 Simulate fatigue lifetime of the geometry system
 }
 \details{
-The function simulates the fatigue lifetime model for the given geometry system. The overall fatigue lifetime 
-is determined by the first accumulated convex area of projected defects which exceeds the 
+The function simulates the fatigue lifetime model for the given geometry system. The overall fatigue lifetime
+is determined by the first accumulated convex area of projected defects which exceeds the
 predefined critical area. The process of defect accumulation is based on the general results for VHCF fatigue behaviour of
-material structures published by Murakami. Here we treat two nearby defects as an enlarged 
+material structures published by Murakami. Here we treat two nearby defects as an enlarged
 common one if the weighted (single-linkage) Euclidean distance inbetween (in 3D) is less than some portion (possibly including
-some material specific constant) of the minimum of the corresponding square roots of projected defect areas. The weight is chosen 
+some material specific constant) of the minimum of the corresponding square roots of projected defect areas. The weight is chosen
 as the reciprocal value of the cosine of the angle between the main load direction and the rotational axis of the chosen object
-having minimum distance to the compared defect .  
+having minimum distance to the compared defect .
 Further, the argument \code{opt} defines the list of controls of fixed parameters with the following elements:
-\code{vickers} Vickers hardness, \code{distTol} as a (proportion) factor of the minium the corresponding square roots of 
+\code{vickers} Vickers hardness, \code{distTol} as a (proportion) factor of the minium the corresponding square roots of
 projected defect areas (might be less than 0.95 but in general depends on the inverstigated material structure),
 \code{inAreafactor} default set to value 1.56, \code{outAreafactor} default set to value 1.43, \code{pointsConvHull} number of
 sampling points of each objects projection border for approximating the defect projection convex area, \code{scale} scaling factor

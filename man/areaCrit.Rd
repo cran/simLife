@@ -4,7 +4,7 @@
 \alias{areaCrit}
 \title{Critical area}
 \usage{
-areaCrit(vickers, stress, factor = 1.56)
+areaCrit(vickers, stress, factor = 1.56, scale = 1e+06)
 }
 \arguments{
 \item{vickers}{specific Vickers hardness}
@@ -12,9 +12,11 @@ areaCrit(vickers, stress, factor = 1.56)
 \item{stress}{stress level}
 
 \item{factor}{specific material dependent factor, default set to \code{1.56} for inner defects}
+
+\item{scale}{area in square millimeters (default)}
 }
 \value{
-critical area in \eqn{\mu m^2}
+critical area in \eqn{[mm]^2} (default)
 }
 \description{
 Calculate critical area

@@ -27,9 +27,9 @@ Simulate crack times
 The function randomly generates phase dependent failure times of defect types \code{crack} and \code{delam}.
 The accumulation structure of defects is initialized containing the failure times of objects in ascending order.
 The failure times of the defect type \code{crack} follow a Weibull distribution, see \code{\link{simCrackTime}}.
-The failure times of the defect type \code{delam} roughly depend on the projected area of the object, the 
+The failure times of the defect type \code{delam} roughly depend on the projected area of the object, the
 applied overall stress amplitude and whether the object lies in the interior of the simulation box or hits
-one of the box boundaries. The argument \code{param} consists of a distribution parameter list which contains 
+one of the box boundaries. The argument \code{param} consists of a distribution parameter list which contains
 numeric vectors for both reinforcement objects (labled by \code{P}) and an optional second phase (labled by \code{F}).
 If no second phase is considered the corresponding parameter set is simply ignored. Each parameter vector is made up of
 six parameters in the following order: \eqn{p1} probability of already materialized defects, scale factor \eqn{p2},
@@ -37,20 +37,23 @@ shape factor \eqn{p3}, shift parameter \eqn{p4} of log times, the slope \eqn{p5}
 of the random error of log times.
 }
 \examples{
-## Simulation of individual defect times	
+## Simulation of individual defect times
+## of some particle system
 data(AL2MC_20p_k10_F2p_S)
+## locally clustered spatial domains
 data(AL2MC_20p_k10_F2p_CL)
 
 ## generate individual failure times
-opt <- list("vickers"=107,"distTol"=0.001,
-			"inAreafactor"=1.56, "outAreafactor"=1.43, 
-			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)	
+opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
+			"inAreafactor"=1.56, "outAreafactor"=1.43,
+			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
 
-## simulation parameter	
-par <- list("P"=c(0.01,10^12,10,108,-14,0.01),
-			"F"=c(0.01,10^10,10,100,-13,0.01))	
+par <- list("P"=c(0.01,6,0.5,75,-15,3),
+			"F"=c(0,0,0,105,-12,1),
+			"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+					 	 "pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
 
-## simulate times	
+## simulate times
 CLT <- simTimes(S,par,vickers=opt$vickers,stress=125)
 
 ## times
@@ -59,7 +62,7 @@ V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 
 ## show estimated densities
-showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)),xlim=c(-2,15))
 }
 \seealso{
 \code{\link{getCrackTime}}, \code{\link{getDelamTime}}

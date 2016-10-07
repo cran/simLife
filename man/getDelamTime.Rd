@@ -2,7 +2,7 @@
 % Please edit documentation in R/times.R
 \name{getDelamTime}
 \alias{getDelamTime}
-\title{Generate delamination times}
+\title{Generate interface debonding times}
 \usage{
 getDelamTime(E, stress, param, inF = 0.5, outF = 0.65)
 }
@@ -18,20 +18,20 @@ getDelamTime(E, stress, param, inF = 0.5, outF = 0.65)
 \item{outF}{weightening factor for outer defect projection}
 }
 \value{
-numeric, the individual delamination time
+numeric, the individual debonding time
 }
 \description{
-Generate individual defect times for particle delamination
+Generate individual defect times for particle debonding
 }
 \details{
-This kind of failure time (time of delamination from the metal matrix structure) roughly depends on the 
-projected area of the object, the applied overall stress level and whether the object lies in the interior 
-of the simulation box or hits one of the box boundaries. The parameter vector is made up of six parameters where 
-the second and third parameters are used to simulate the defect type \code{crack}, see \code{\link{getCrackTime}}. 
+This kind of failure time (time of debonding from the metal matrix structure) roughly depends on the
+projected area of the object, the applied overall stress level and whether the object lies in the interior
+of the simulation box or hits one of the box boundaries. The parameter vector is made up of six parameters where
+the second and third parameters are used to simulate the defect type \code{crack}, see \code{\link{getCrackTime}}.
 The order is as follows: \eqn{p1} probability of already materialized defects, scale factor \eqn{p2}, shape factor
 \eqn{p3}, shift parameter \eqn{p4} of log times, the slope \eqn{p5} and \eqn{p6} denoting the standard deviation
 of the random errors of the log times. Only the last three parameters \eqn{p4,p5,p6} are used to determine the defect
-time for delamination of the considered object.
+time for debonding of the considered object.
 }
 \author{
 Felix Ballani

@@ -8,20 +8,15 @@
 \alias{simCrackTime.sphere}
 \title{Defect failure times}
 \usage{
-simCrackTime(S, stress, vickers, param,
-  parallel.option = getOption("parallel.option", "lapply"))
+simCrackTime(S, stress, vickers, param, fun = lapply)
 
-\method{simCrackTime}{oblate}(S, stress, vickers, param,
-  parallel.option = getOption("parallel.option", "lapply"))
+\method{simCrackTime}{oblate}(S, stress, vickers, param, fun = lapply)
 
-\method{simCrackTime}{prolate}(S, stress, vickers, param,
-  parallel.option = getOption("parallel.option", "lapply"))
+\method{simCrackTime}{prolate}(S, stress, vickers, param, fun = lapply)
 
-\method{simCrackTime}{cylinder}(S, stress, vickers, param,
-  parallel.option = getOption("parallel.option", "lapply"))
+\method{simCrackTime}{cylinder}(S, stress, vickers, param, fun = lapply)
 
-\method{simCrackTime}{sphere}(S, stress, vickers, param,
-  parallel.option = getOption("parallel.option", "lapply"))
+\method{simCrackTime}{sphere}(S, stress, vickers, param, fun = lapply)
 }
 \arguments{
 \item{S}{geometry objects system}
@@ -32,8 +27,8 @@ simCrackTime(S, stress, vickers, param,
 
 \item{param}{simulation parameter list of parameter vectors for both phases}
 
-\item{parallel.option}{optional, in case of \code{mclapply} the function 
-\code{mclapply} is used from the parallel package}
+\item{fun}{optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
+for to parallelize simulations}
 }
 \value{
 a list with the following elements:
@@ -44,12 +39,12 @@ a list with the following elements:
 				\item{T}{ the minimum of both failure times}
 				\item{B}{ failure type, either 0  for particle crack or 1 for particle delamination }
 				\item{A}{ projection area set to zero for later use }
-				\item{label}{ either \code{label="P"} for primary phase or \code{label="F"} 
+				\item{label}{ either \code{label="P"} for primary phase or \code{label="F"}
 							  for secondary phase }
 			}
 }
 \description{
-Simulation of individual defect failure times. For a secondary phase only 
+Simulation of individual defect failure times. For a secondary phase only
 the defect type "delamination" is considered.
 }
 \author{

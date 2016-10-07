@@ -21,7 +21,7 @@ where each list element consists of the following variables:
   \item{length}{ length/height of cylinder without radii of caps}
 	 \item{u}{ orientation vector of spheroid's rotational symmetry axis}
 	 \item{r}{ radius of cylinder}
-	 \item{angles}{ colatitude and longitude angle}   
+	 \item{angles}{ colatitude and longitude angle}
 	 \item{rotM}{ rotational matrix, center of rotation is the center of the spheroid}
 	 \item{radius}{ attribute, random radius of perfect simulation, if enabled}
 	 \item{interior}{ attribute, whether the spheroid lies in the interior of the simulation box}

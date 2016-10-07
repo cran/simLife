@@ -15,7 +15,7 @@ simFracture(stress, S, opt, param, last.defect = FALSE, CL = NULL)
 
 \item{param}{parameter list for generating individual failure times}
 
-\item{last.defect}{logical, \code{last.defect=FALSE} (default), return either all defect 
+\item{last.defect}{logical, \code{last.defect=FALSE} (default), return either all defect
 accumulations or only the last one}
 
 \item{CL}{optional, NULL (default), predefined clustered regions of objects}
@@ -35,58 +35,70 @@ Simulation of fatigue lifetime model
 \details{
 We provide a wrapper function for \code{\link{simDefect}} to simulate the proposed fatigue lifetime model including
 the generation of individual failure times with additional information of the responsible accumulated defect projection
-area (simply called defect area) which leads to the failure of the system. This information is returned in the following 
+area (simply called defect area) which leads to the failure of the system. This information is returned in the following
 list with elements: \code{crack} the responsible defect itself, \code{T} the individual failure times of objects aggregated
 as a cluster of objects, \code{ferrit} whether any secondary phase (here called \code{ferrit}) is involved for overall failure,
 \code{interior} whether the defect occurs in the interior or at the boundaries of the simulation box. The optional
 list argument \code{CL} defines clustered regions, see \code{\link{simCluster}}, of objects sticking together more close than
-others. This is useful in case one also wishes to model densely lieing agglomerations of objects (i.e. clusters of particles or 
+others. This is useful in case one also wishes to model densely lieing agglomerations of objects (i.e. clusters of particles or
 fibers) as an obvious phenomenon of some specimen in mind. This list is made up of the following elements: \code{id}, the id of
-the region, \code{center} the center point of the corresponding region, \code{r} the radius (as the Euclidean distance from the 
-center point) which within all objects belong to this region, \code{interior} whether any object within radius \code{r} hits 
+the region, \code{center} the center point of the corresponding region, \code{r} the radius (as the Euclidean distance from the
+center point) which within all objects belong to this region, \code{interior} whether any object within radius \code{r} hits
 the box boundaries of the simulation box.
 }
 \examples{
 ## Load a particle system
 ## and simulate its defect accumulation
 
-## primary particles and secondary phase (ferrit)
-data(AL2MC_20p_k10_F2p_S)
-## which is clustered and densified according to CL 
-## additional predefined clustered regions
-data(AL2MC_20p_k10_F2p_CL)
+## primary reinforcement (fibres)  and secondary phase (ferrit)
+data(AL2MC_15p_k10_F2p_S)  # loading SF
 
-## the box is stored together with the geometry system 
-box <- attr(S,"box")
+## locally clustered spatial domains
+data(AL2MC_15p_k10_F2p_CL) # loading CLF
 
-## distTol=0.25, so use 25\% of accumulation distance
-opt <- list("vickers"=107,"distTol"=0.25,
-		"inAreafactor"=1.56, "outAreafactor"=1.43, 
-		"pointsConvHull"=10, "scale"=1e+06,"pl"=101)
+## the box is stored together with the geometry system
+box <- attr(SF,"box")
 
-par <- list("P"=c(0.01,10^12,10,105,-13,0.01),
-			"F"=c(0.01,10^12,10,98,-12,0.01))
+## generate individual failure times
+opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
+		"inAreafactor"=1.56, "outAreafactor"=1.43,
+		"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
 
-# stress amplitude applied	
-stress <- 110
+par <- list("P"=c(0.01,10,0.5,80,-15,2),
+		"F"=c(0,0,0,105,-12,1),
+		"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+				"pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
+
+
+# stress amplitude applied
+stress <- 120
 ## generate individual (particles') failure times
-CLT <- simTimes(S,par,vickers=opt$vickers,stress=stress)
+CLT <- simTimes(SF,par,vickers=opt$vickers,stress=stress)
+
+T <- unlist(sapply(CLT,`[[`,"T"))
+V <- unlist(sapply(CLT,`[[`,"V"))
+U <- unlist(sapply(CLT,`[[`,"U"))
+
+## show estimated densities
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)),xlim=c(-2,15))
+
+
 ## run accumulation
-RET <- simDefect(stress,S,CLT,opt)
+RET <- simDefect(stress,SF,CLT,opt)
 
 #### alternatively run
-#SIM <- simFracture(stress,S,opt,par,last.defect=FALSE,CL=CL)	
+#SIM <- simFracture(stress,S,opt,par,last.defect=FALSE,CL=CL)
 #SIM$cl_info
 ####
 
 ## some simple analysis
 LR <- RET[[length(RET)]]
-isInCluster <- any(unlist(lapply(CL,function(x,y)
+isInCluster <- any(unlist(lapply(CLF,function(x,y)
 					any(y$id \%in\% x$id) , y=LR)))
 cat("Broken cluster: ", isInCluster,"\\t Ferrit: ",
 	any("F" \%in\% LR$label),"\\t Acc.size",length(LR$id),"\\n")
-	
-## select only clusters of size larger than 'msize'	
+
+## select only clusters of size larger than 'msize'
 msize <- 1
 id <- sapply(RET,function(x) ifelse(length(x$id)>msize,TRUE,FALSE))
 cat("Number of defect projections in last cluster: ",length(RET[[length(RET)]]$id),"\\n")
@@ -94,15 +106,12 @@ cat("Number of defect projections in last cluster: ",length(RET[[length(RET)]]$i
 ## draw all accumulation paths until failure
 dev.new()
 L <- plotDefectAcc(RET,last.path=FALSE)
-## draw last accumulation path until failure
-dev.new()
-L <- plotDefectAcc(RET,last.path=TRUE)
 
-## plot last 
+## plot last
 ## get particle id numbers of last cluster
 # qid <- LR$id
-# spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
+# cylinders3d(SF[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
 ## drawing only last cluster leading to failure
-# drawDefectProjections(S,list(LR))
+# drawDefectProjections(SF,list(LR))
 }
 

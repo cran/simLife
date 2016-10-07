@@ -4,34 +4,37 @@
 \alias{showDensity}
 \title{Plot estimated densities}
 \usage{
-showDensity(dv, main = "Crack time density estimation", ...)
+showDensity(dv, main = "Failure time density estimation", ...)
 }
 \arguments{
 \item{dv}{named list of individual failure times}
 
 \item{main}{title of the plot (optional)}
 
-\item{...}{arguments passed to \code{\link[lattice]{densityplot}}}
+\item{...}{optional, additional graphics parameters}
 }
 \description{
-Plot the estimated densities which result from the randomly 
+Plot the estimated densities which result from the randomly
 generated individual failure times.
 }
 \examples{
-## Simulation of individual defect times	
+## Simulation of individual defect times
+## of some particle system
 data(AL2MC_20p_k10_F2p_S)
+## locally clustered spatial domains
 data(AL2MC_20p_k10_F2p_CL)
 
 ## generate individual failure times
-opt <- list("vickers"=107,"distTol"=0.001,
-			"inAreafactor"=1.56, "outAreafactor"=1.43, 
-			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)	
+opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
+			"inAreafactor"=1.56, "outAreafactor"=1.43,
+			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
 
-## simulation parameter	
-par <- list("P"=c(0.01,10^12,10,108,-14,0.01),
-			"F"=c(0.01,10^10,10,100,-13,0.01))	
+par <- list("P"=c(0.01,6,0.5,75,-15,3),
+			"F"=c(0,0,0,105,-12,1),
+			"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+					 	 "pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
 
-## simulate times	
+## simulate times
 CLT <- simTimes(S,par,vickers=opt$vickers,stress=125)
 
 ## times
@@ -40,6 +43,6 @@ V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 
 ## show estimated densities
-showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)))
+showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)),xlim=c(-2,15))
 }
 

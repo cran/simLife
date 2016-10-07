@@ -51,6 +51,8 @@ do {                                               \
 #include <R_ext/Lapack.h>
 #include "GeometricPrimitives.h"
 
+using namespace std;
+
 static inline double sign(double a,double b) { return a = fabs(a),(b<0)?-a:a; }
 
 /** minimum distance cylinder rods */

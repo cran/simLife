@@ -10,7 +10,7 @@ getCylinderProjection(S, B = rep(1, length(S)), draw = TRUE, conv = TRUE,
 \arguments{
 \item{S}{fibers to be projected}
 
-\item{B}{integer vector of length equal to \code{S} of defect types, 
+\item{B}{integer vector of length equal to \code{S} of defect types,
 \code{B=0} for crack and \code{B=1} for delamination.}
 
 \item{draw}{logical, \code{draw=TRUE} (default) draw the projected fibers}
@@ -66,7 +66,7 @@ CLUST <- simCluster(S2, param, 0.1, box,verbose=TRUE)
 	
 ## densify
 ctrl <- list(threshold.stop=0.01,max.call=5000,verbose=FALSE)
-RET <- densifyCluster(S2, CLUST, box, ctrl, weight=10, cl = NULL)	
+RET <- densifyCluster(S2, CLUST, box, ctrl, weight=100, cl = NULL)	
 G <- RET$cluster
 
 ## draw original cluster

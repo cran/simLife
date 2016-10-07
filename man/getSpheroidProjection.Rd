@@ -15,7 +15,7 @@ getSpheroidProjection(S, type)
 returns a list of 2d ellipse objects.
 }
 \description{
-In case one wishes to analyze the defect projections directly the function returns 
+In case one wishes to analyze the defect projections directly the function returns
 the projected objects itself. The two types of defects lead to different projected objects.
 In case of defect type \code{crack} the circle of maximum radius of
 the particle is orthogonally projected otherwise the whole particle
