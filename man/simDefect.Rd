@@ -54,6 +54,5 @@ larger than 100. In this case only the accumulated defect projections after addi
 Here the last element contains the defect with the highest projected area which leads to the overall failure.
 }
 \author{
-Markus Baaske
+M. Baaske
 }
-

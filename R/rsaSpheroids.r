@@ -27,28 +27,33 @@
 #' iterations is reached. This function is most suited for volume fractions less than 0.15.
 #'
 #' @param S 			overlapping geometry system
-#' @param box			simulation box
 #' @param F 			secondary phase objects as list
 #' @param pl			integer: if \code{pl>0} give some intermediate results
 #' @param verbose       logical: if \code{verbose=TRUE} (default) show additional information
 #'
 #' @return			    list of non-overlapping particles
+#' @rdname 				rsa
 #' @author				Felix Ballani, Markus Baaske
 #' @references
 #'	 J.W. Evans. Random and cooperative sequential adsorption. Rev. Mod. Phys., 65: 1281-1304, 1993.
-rsa <- function(S, box, F = NULL, pl = 0, verbose = TRUE) UseMethod("rsa", S)
+#' @export
+rsa <- function(S, F = NULL, pl = 0, verbose = TRUE) UseMethod("rsa", S)
 
-#' @rdname rsa
+
 #' @method rsa oblate
-#' @S3method rsa oblate
-rsa.oblate <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
-	rsa.prolate(S,box,F,pl,verbose)
+#' @export
+rsa.oblate <- function(S, F = NULL, pl = 0, verbose = TRUE) {
+	rsa.prolate(S,F,pl,verbose)
 }
 
-#' @rdname rsa
+
 #' @method rsa prolate
-#' @S3method rsa prolate
-rsa.prolate <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
+#' @export
+rsa.prolate <- function(S, F = NULL, pl = 0, verbose = TRUE) {
+	box <- attr(S,"box")
+	if(is.null(box))
+	 stop("Could not find attribute 'box' in `",as.character(substitute(S)),"`.")
+	
 	# combine spheroids and ferrit particles
 	if(!is.null(F)) {
 		if(class(F)!=class(S))
@@ -61,7 +66,7 @@ rsa.prolate <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
 		attributes(S) <- attrs
 	}
 	# check of volume fraction
-	v <- sum(sapply(S,function(x) x$ab[1]^2*x$ab[2]))
+	v <- sum(sapply(S,function(x) x$acb[1]^2*x$acb[2]*x$acb[3]))
 	p <- 4*pi/3*v/((box$xrange[2]-box$xrange[1])*(box$yrange[2]-box$yrange[1])*(box$zrange[2]-box$zrange[1]))
 	if(verbose)
 	  cat(paste("Volume fraction: ",p,"\n"))
@@ -69,22 +74,23 @@ rsa.prolate <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
 	  message(paste("Target volume fraction is ",p," which is quite large for RSA algorithm.\n
 		Algorithm may terminate successfully (but very slowly) or even fail totally.\n",sep=""))
 
-	D <- 2.0*max(unlist(lapply(S, function(s) max(s$ab))))           # overall maximum axis length
-	FUN <- .checkOverlap
-
-	return (.rsaPeriodic(S,box,FUN,D,pl))
+	D <- 2.0*max(unlist(lapply(S, function(s) max(s$acb))))           # overall maximum axis length
+	
+	return ( .rsaPeriodic(S,box,.checkOverlap,D,pl) )
 }
 
-#' @rdname rsa
-#' @method rsa cylinder
-#' @S3method rsa cylinder
-rsa.cylinder <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
-	v <- sum(sapply(S, function(x) pi*x$r^2*x$length + 4/3*pi*x$r^3 ))
+#' @method rsa cylinders
+#' @export
+rsa.cylinders <- function(S, F = NULL, pl = 0, verbose = TRUE) {
+	box <- attr(S,"box")
+	if(is.null(box))
+		stop("Could not find attribute 'box' in `",as.character(substitute(S)),"`.")
+	v <- sum(sapply(S, function(x) pi*x$r^2*x$h + 4/3*pi*x$r^3 ))
 	if(!is.null(F)) {
-		if(!(class(F) %in% c("cylinder","sphere")))
+		if(!(class(F) %in% c("cylinders","spheres")))
 		 stop(paste0("Trying to pack objects of different types -> exiting."))
 	 	n <- length(S)
-	 	if(class(F) == "sphere") {
+	 	if(class(F) == "spheres") {
 		  for(i in 1:length(F)) {
 			 F[[i]]$id <- i+n
 			 # dummies to treat sphere as cylinder
@@ -109,23 +115,29 @@ rsa.cylinder <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
 		message(paste("Target volume fraction is ",p," which is quite large for RSA method.\n
 			Algorithm may terminate successfully (but very slowly) or even fail totally.\n",sep=""))
 
-	D <- max(unlist(lapply(S, "[[","length")))
-	FUN <- .checkOverlapCylinder
-
-	S <- .rsaPeriodic(S,box,FUN,D,pl)
+	D <- max(unlist(lapply(S, "[[","h")))
+	S <- try( .rsaPeriodic(S,box,.checkOverlapCylinder,D,pl), silent=TRUE)
+	
+	if(inherits(S,"try-error")){
+	 warning("Could not generate non-overlapping system of cylinders.")
+	 return(S)
+    }
+ 
 	for(i in seq_along(S)) {
 		x <- S[[i]]
-		S[[i]]$origin0 <- x$center + 0.5*x$length*x$u
-		S[[i]]$origin1 <- x$center - 0.5*x$length*x$u
+		S[[i]]$origin0 <- x$center + 0.5*x$h*x$u
+		S[[i]]$origin1 <- x$center - 0.5*x$h*x$u
 
 	}
 	return ( S )
 }
 
-#' @rdname rsa
-#' @method rsa sphere
-#' @S3method rsa sphere
-rsa.sphere <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
+#' @method rsa spheres
+#' @export
+rsa.spheres <- function(S, F = NULL, pl = 0, verbose = TRUE) {
+	box <- attr(S,"box")
+	if(is.null(box))
+	 stop("Could not find attribute 'box' in `",as.character(substitute(S)),"`.")
 	if(!is.null(F)) {
 		if(class(F)!=class(S))
 			stop(paste0("Trying to pack objects of different types -> exiting."))
@@ -145,9 +157,8 @@ rsa.sphere <- function(S, box, F = NULL, pl = 0, verbose = TRUE) {
 			Alorithm may terminate successfully (but very slowly) or even fail totally.\n",sep=""))
 
 	D <- 2.0*max(unlist(lapply(S, "[[","r")))
-	FUN <- .checkOverlapSphere
-
-	return (.rsaPeriodic(S,box,FUN,D,pl) )
+	
+	return (.rsaPeriodic(S,box,.checkOverlapSphere,D,pl) )
 }
 
 

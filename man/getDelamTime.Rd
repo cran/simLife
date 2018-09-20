@@ -7,11 +7,11 @@
 getDelamTime(E, stress, param, inF = 0.5, outF = 0.65)
 }
 \arguments{
-\item{E}{the object, i.e. spheroid, cylinder, sphere}
+\item{E}{object of class "\code{oblate}", "\code{prolate}", "\code{cylinders}", "\code{spheres}"}
 
 \item{stress}{stress level}
 
-\item{param}{simulation parameter vector}
+\item{param}{simulation parameter vector, see details}
 
 \item{inF}{weightening factor for inner defect projection}
 
@@ -36,4 +36,3 @@ time for debonding of the considered object.
 \author{
 Felix Ballani
 }
-

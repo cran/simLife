@@ -34,4 +34,6 @@ Plot accumulation of damage projection areas
 Simple plotting function to visualize the process of damage accumulation separately
 for interior objects and objects hitting the surface of the simulation box (specimen)
 }
-
+\author{
+M. Baaske
+}

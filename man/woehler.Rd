@@ -17,10 +17,9 @@ woehler(S, CL, param, opt, stress, fun = lapply, cl = NULL)
 
 \item{stress}{list of stress levels}
 
-\item{fun}{optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
-for to parallelize simulations}
+\item{fun}{optional, either \code{lapply} (default) or parllel processing by \code{mclapply}}
 
-\item{cl}{optional, parallel cluster object, see 'snow'}
+\item{cl}{optional, parallel cluster object}
 }
 \value{
 matrix of failure times, first colunm corresponds to the times
@@ -40,48 +39,39 @@ cluster object.
 \examples{
 \dontrun{
 
-## For use with parallel package (recommended)
-# library("parallel")
-# options(mc.cores=detectCores())
-# options(parallel.option="mclapply")
+## For use with parallel package
+# library(parallel)
+# options(mc.cores=2L)
 
-data(AL2MC_20p_k10_F2p_S)
+# primary particles and secondary phase (ferrit) 
+# which is already clustered and densified 
+data(AL2MC_20p_k10_F2p_S)	
 
-## generate individual failure times
-opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
-		"inAreafactor"=1.56, "outAreafactor"=1.43,
-		"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
+# simulation parameters 
+opt <- list("vickers"=107,"distTol"=1.0,"Tmax"=10^11,
+			"inAreafactor"=1.56, "outAreafactor"=1.43,
+			"pointsConvHull"=10, "scale"=1e+06,"pl"=1L)
 
-par <- list("P"=c(0.01,6,0.5,75,-15,3),
-		"F"=c(0,0,0,105,-12,1),
-		"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
-				"pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
-
-# number of simulations at each stress level
-nsim <- 5
-# stress levels
+# lifetimes parameters
+par <- list("P"=c(0.01,6,0.5,75,-15,1.5),
+			"F"=c(0,0,0,105,-12,1),
+			"const"=NULL)
+	
+nsim <- 10
 stress <- as.list(seq(from=90,to=140,by=10))
 
-## using no cluster
 cl <- NULL
-## or for use of SOCKS or MPI cluster
-# library("snow")
-# cl <- makeCluster(6)
-## or
-# cl <- makeSOCKcluster(6)
-# clusterEvalQ(cl,library("simLife"))
-
+## might use a MPI/SOCKS/PSOCKS cluster objects
+#cl <- makeCluster(8)
+	
 # the following code may take some time
-W <- woehler(SF, CL=NULL, par, opt, stress=rep(stress,each=nsim))
+W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim),fun=lapply,cl=cl)
+woehlerDiagram(W, yrange=c(70,145))
 
-woehlerDiagram(W, NULL, yrange=c(80,145), cl=cl)
-
-## do not forget to stop cluster if used
-# stopCluster(cl)
-
+## do not forget to stop cluster if used 
+if(!is.null(cl)) stopCluster(cl)	
 }
 }
 \author{
-Markus Baaske
+M. Baaske
 }
-

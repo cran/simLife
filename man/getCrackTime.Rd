@@ -7,7 +7,7 @@
 getCrackTime(theta, a, b, stress, vickers, p, const)
 }
 \arguments{
-\item{theta}{colatitude angle}
+\item{theta}{polar angle}
 
 \item{a}{axis length (axis orthogonal to rotational axis)}
 
@@ -39,10 +39,9 @@ and the axis of main load direction. In this way we account for the orientation 
 when generating fracture times dependent on their tendency to be more or less oriented towards the
 main load direction.
 }
-\author{
-Felix Ballani
-}
 \seealso{
 \code{\link{getDelamTime}}
 }
-
+\author{
+Felix Ballani, M. Baaske
+}

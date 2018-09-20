@@ -1,38 +1,46 @@
-## Simulate a particle system by spheres
-## simulate densified clusters 
-## and generate a non-overlapping configuration of spheres by RSA
+## Simulate a particle system by spheres and densified clusters 
+## Generate a non-overlapping configuration of spheres by RSA
 
 ## MS-Windows only
-#library("parallel")
-#options(mc.cores=detectCores())
-#options(parallel.option="mclapply")	
-	
-lam <-15
+# library(parallel)
+# options(mc.cores=2L)
+
+library(unfoldr)
+
+theta <- list("size"=list(0.1))
 box <- list("xrange"=c(0,3),"yrange"=c(0,3),"zrange"=c(0,9))
-theta <- list("r"=0.1)
-S <- simSphereSystem(theta,lam, rdist="const", box=box,pl=101,label="P")
+
+S <- simPoissonSystem(theta,lam=15,size="const",
+		box=box,type="spheres",pl=1,label="P")
+
 # rsa
-S2 <- rsa(S,box,pl=101,verbose=TRUE)
+S2 <- rsa(S,pl=1,verbose=TRUE)
+
 # project some spheres
 id <- c(1,5,9,32,10)
 # get matrix of border points of sphere projections
 P <- getSphereProjection(S2[id],draw=FALSE)
 	
-# densify and construct clusters
-# with radius 0.35 based on hardcore particle system
-param <- list("r"=0.35)
-CLUST <- simCluster(S2, param, 0.1, box, verbose=TRUE)
+# densify with radius 0.35 based on hardcore particle system
+CL <- simPoissonSystem(list(size=list(0.35)),lam=0.1,size="const",box=box,
+		type="spheres",pl=1,label="P")
+
+# construct cluster objects
+CLUST <- simCluster(S2, CL, verbose=TRUE)
 	
 # densify
-ctrl <- list(threshold.stop=0.01,max.call=5000,verbose=FALSE)
-RET <- densifyCluster(S2, CLUST, box, ctrl, weight=10,cl = NULL)
+ctrl <- list(threshold.stop=0.01, max.call=5000, verbose=FALSE)
+RET <- densifyCluster(S2, CLUST, ctrl, weight=20)
 
-## Uncomment the following lines for 3d visualization
+####################################################################
+## Optional: 3D visualization of densified sphere clusters
+####################################################################
 
 ## get the densified cluster
-#G <- RET$cluster
+# G <- RET$cluster
 
-## drawing spheres (requires 'rgl') 
+## drawing spheres (requires 'rgl')
+#require(rgl)
 #cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
 #drawSpheres <- function(S, box, ...) {
 #	X <- do.call(rbind,lapply(S,function(x) c(x$center,x$r) ))
@@ -47,19 +55,23 @@ RET <- densifyCluster(S2, CLUST, box, ctrl, weight=10,cl = NULL)
 #	axes3d(edges = "bbox",labels=TRUE,tick=FALSE,box=TRUE,nticks=0,
 #			expand=1.0,xlen=0,xunit=0,ylen=0,yunit=0,zlen=0,zunit=0)
 #}	
-
-## draw original clusters
-#X <- do.call(rbind,lapply(CLUST, function(x) c(x$center,x$r)))
 #
+
+####################################################################
+## Optional: 3D visualization of original clustered regions 
+####################################################################
+
+#X <- do.call(rbind,lapply(CLUST, function(x) c(x$center,x$r)))
+
 #open3d()
 #invisible(lapply(CLUST, function(x) rgl::spheres3d(X[,1:3],radius=X[,4],col="gray",alpha=0.2)))
 #lapply(CLUST,function(x) drawSpheres(S2[x$id],box=box,col=cols))	
 #
-## draw densified clusters and their projections
+### draw densified clusters and their projections
 #open3d()
 #invisible(lapply(CLUST, function(x) rgl::spheres3d(X[,1:3],radius=X[,4],col="gray",alpha=0.2)))
 #invisible(lapply(G,function(x) {
 #	drawSpheres(x,box=box,col=cols)
 #	invisible(getSphereProjection(x,draw=TRUE))	
 #}))
-#
+

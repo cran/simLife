@@ -47,58 +47,70 @@ center point) which within all objects belong to this region, \code{interior} wh
 the box boundaries of the simulation box.
 }
 \examples{
-## Load a particle system
-## and simulate its defect accumulation
+\dontrun{
 
-## primary reinforcement (fibres)  and secondary phase (ferrit)
-data(AL2MC_15p_k10_F2p_S)  # loading SF
+## Simulate a defect accumulation
+## of a particle system
+library(simLife)
 
-## locally clustered spatial domains
-data(AL2MC_15p_k10_F2p_CL) # loading CLF
+## primary particles (as prolate spheroids)
+## and secondary phase (as spheres)
+data(AL2MC_20p_k10_F2p_S)
 
-## the box is stored together with the geometry system
-box <- attr(SF,"box")
+## which is clustered and densified according to CL 
+## additional predefined clustered regions
+data(AL2MC_20p_k10_F2p_CL)
 
-## generate individual failure times
-opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
-		"inAreafactor"=1.56, "outAreafactor"=1.43,
-		"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
+## the box is stored together with the geometry system 
+box <- attr(S,"box")
 
-par <- list("P"=c(0.01,10,0.5,80,-15,2),
-		"F"=c(0,0,0,105,-12,1),
-		"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
-				"pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
+## distTol=0.25, so use 25\% of accumulation distance
+opt <- list("vickers"=107, "distTol"=0.25, "Tmax"=10^12,
+		"inAreafactor"=1.56, "outAreafactor"=1.43, 
+		"pointsConvHull"=10, "scale"=1e+06,"pl"=101)
 
+## constants 'const' are set to the following internally
+## and can partially be overwritten if needed
+# const <- list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+#		    "pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891)
 
-# stress amplitude applied
-stress <- 120
+par <- list("P"=c(0.01,5,0.5,50,-11,3),
+		"F"=c(0,0,0,105,-12,1),"const"=NULL)
+
+# stress amplitude applied	
+stress <- 110
 ## generate individual (particles') failure times
-CLT <- simTimes(SF,par,vickers=opt$vickers,stress=stress)
+CLT <- simTimes(S,par,vickers=opt$vickers,stress=stress)
 
+## generated random failure times
 T <- unlist(sapply(CLT,`[[`,"T"))
 V <- unlist(sapply(CLT,`[[`,"V"))
 U <- unlist(sapply(CLT,`[[`,"U"))
 
-## show estimated densities
-showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)),xlim=c(-2,15))
+dev.new()
+showDensity(list("Debonding"=log10(V),"Fracture"=log10(U),"Failure time"=log10(T)),xlim=c(-2,15))
 
+# Area max
+(inA <- areaCrit(opt$vickers, stress=stress, factor=opt$inAreafactor, scale=opt$scale))
+(outA <- areaCrit(opt$vickers, stress=stress, factor=opt$outAreafactor, scale=opt$scale))
 
 ## run accumulation
-RET <- simDefect(stress,SF,CLT,opt)
+RET <- simDefect(stress,S,CLT,opt)
+length(RET)
 
-#### alternatively run
-#SIM <- simFracture(stress,S,opt,par,last.defect=FALSE,CL=CL)
-#SIM$cl_info
-####
+#### alternatively, includes simulating times by 'simTimes'
+# SIM <- simFracture(stress,S,opt,par,last.defect=FALSE,CL=CL)	
+# SIM$cl_info
 
-## some simple analysis
+## some simple analysis of accumulation paths until failure,
+## that is, while the critical area is exceeded
 LR <- RET[[length(RET)]]
-isInCluster <- any(unlist(lapply(CLF,function(x,y)
+isInCluster <- any(unlist(lapply(CL,function(x,y)
 					any(y$id \%in\% x$id) , y=LR)))
 cat("Broken cluster: ", isInCluster,"\\t Ferrit: ",
 	any("F" \%in\% LR$label),"\\t Acc.size",length(LR$id),"\\n")
-
-## select only clusters of size larger than 'msize'
+	
+## select only clusters of size larger than 'msize'	
 msize <- 1
 id <- sapply(RET,function(x) ifelse(length(x$id)>msize,TRUE,FALSE))
 cat("Number of defect projections in last cluster: ",length(RET[[length(RET)]]$id),"\\n")
@@ -106,12 +118,21 @@ cat("Number of defect projections in last cluster: ",length(RET[[length(RET)]]$i
 ## draw all accumulation paths until failure
 dev.new()
 L <- plotDefectAcc(RET,last.path=FALSE)
+## draw last accumulation path until failure
+dev.new()
+L <- plotDefectAcc(RET,last.path=TRUE)
 
-## plot last
-## get particle id numbers of last cluster
-# qid <- LR$id
-# cylinders3d(SF[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
-## drawing only last cluster leading to failure
-# drawDefectProjections(SF,list(LR))
+## 3D visualization of final defect projection area
+#library(rgl)
+#library(unfoldr)
+#qid <- LR$id
+#open3d()
+#spheroids3d(S[qid],box=box, col=c("#0000FF","#00FF00","#FF0000","#FF00FF"))
+#
+### drawing only last cluster leading to failure
+#drawDefectProjections(S,list(LR))
 }
-
+}
+\author{
+M. Baaske
+}

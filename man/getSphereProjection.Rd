@@ -24,4 +24,6 @@ The function draws the defect projections in a 3d plot
 and returns the points of its  the convex hull together
 with points of each projected particle (here a sphere).
 }
-
+\author{
+M. Baaske
+}

@@ -10,15 +10,17 @@
 
 #include <R_ext/Rdynload.h>
 
-#include "sim2Life.h"
+#include "simLife.h"
 #include "cluster.h"
+#include "GeometricPrimitives.h"
 
 static int PL = 0;
 
 /// extern declarations
 extern SEXP getVar(SEXP name, SEXP rho);
-extern SEXP convert_C2R_ellipses(STGM::Ellipses &ellipses);
-extern STGM::Ellipses convert_C_Ellipses(SEXP R_ellipses);
+
+extern SEXP convert_R_Ellipse2(STGM::CEllipse2 &ellipse);
+extern STGM::Ellipses2 convert_C_Ellipses2(SEXP R_ellipses);
 extern STGM::Spheroids convert_C_Spheroids(SEXP R_spheroid);
 extern STGM::Spheres convert_C_Spheres(SEXP R_spheres);
 extern STGM::Cylinders convert_C_Cylinders(SEXP R_cylinders);
@@ -82,15 +84,15 @@ double convHArea(const STGM::PointVector2d &P) {
  */
 extern "C"
 SEXP convexHull(SEXP R_points) {
-  SEXP Rp;
-  int n = length(R_points);
+  int n = LENGTH(R_points);
+
   STGM::PointVector2d P;
   P.reserve(n);
 
   for(int i=0;i<n; i++) {
-      Rp = VECTOR_ELT(R_points,i);
-      P.push_back( STGM::CPoint2d(REAL(Rp)[0],REAL(Rp)[1]) );
+     P.push_back(STGM::CPoint2d(REAL(VECTOR_ELT(R_points,i))));
   }
+
   STGM::PointVector2d H = convexHull2d(P);
   double area = convHArea(H);
 
@@ -122,14 +124,14 @@ SEXP convexHull(SEXP R_points) {
  */
 SEXP GetPointsForConvexHull(SEXP R_ellipses, SEXP R_n) {
   int i=0, k=0, N = length(R_ellipses),
-      n = asInteger(AS_INTEGER(R_n));
+      n = INTEGER(AS_INTEGER(R_n))[0];
   int m = N*n;
 
   SEXP R_points = R_NilValue;
   PROTECT(R_points = allocMatrix(REALSXP,m,2));
   double *mat = REAL(R_points);
 
-  STGM::Ellipses ellipses = convert_C_Ellipses(R_ellipses);
+  STGM::Ellipses2 ellipses = convert_C_Ellipses2(R_ellipses);
   STGM::CPoint2d p;
   double t=0.0, s=2.0*M_PI / (double)n;
     for(i=0; i<N; i++) {
@@ -157,12 +159,17 @@ SEXP GetSpheroidProjection(SEXP R_spheroids, SEXP R_crack_type) {
   STGM::Spheroids spheroids = convert_C_Spheroids(R_spheroids);
 
   int n = spheroids.size();
-  STGM::Ellipses ellipses;
+  SEXP R_ret = R_NilValue;
+  PROTECT(R_ret = allocVector(VECSXP,n));
+
+  STGM::CEllipse2 ellipse;
   for(int i=0;i<n; i++) {
         spheroids[i].setCrackType( INTEGER(AS_INTEGER(R_crack_type))[i] );
-        ellipses.push_back(spheroids[i].spheroidProjection());
+        ellipse = spheroids[i].spheroidProjection();
+        SET_VECTOR_ELT(R_ret,i,convert_R_Ellipse2(ellipse));
   }
-  return convert_C2R_ellipses(ellipses);
+  UNPROTECT(1);
+  return R_ret;
 }
 
 /**
@@ -176,7 +183,7 @@ SEXP GetSpheroidProjection(SEXP R_spheroids, SEXP R_crack_type) {
 SEXP GetSphereProjection(SEXP R_s, SEXP R_np) {
   STGM::Spheres spheres = convert_C_Spheres(R_s);
   int n = spheres.size(),
-      np = asInteger(AS_INTEGER(R_np));
+      np = INTEGER(AS_INTEGER(R_np))[0];
 
   double area = 0;
   SEXP R_ret, R_p;
@@ -210,8 +217,8 @@ SEXP GetSphereProjection(SEXP R_s, SEXP R_np) {
  */
 SEXP GetCylinderProjection(SEXP R_cylinders, SEXP R_crack_type,SEXP R_np) {
   STGM::Cylinders cylinders = convert_C_Cylinders(R_cylinders);
-  int n = cylinders.size(),
-      type = 0, m = 0, np = asInteger(AS_INTEGER(R_np));
+  int n = cylinders.size(), type = 0, m = 0,
+	  np = INTEGER(AS_INTEGER(R_np))[0];
 
   double area = 0;
   SEXP R_ret, R_p;
@@ -271,8 +278,9 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
   Rboolean stopit = FALSE;
   STGM::CDefect<T> *head, *last;
 
-  double minDist=0,
-         MPI4 = info.distTol*std::sqrt(M_PI_4); // to compare to minDist (distTol is weight factor < 1)
+  double minDist=0.0;
+  /* // to compare to minDist (distTol is weight factor < 1) */
+  double MPI4 = info.distTol*std::sqrt(M_PI_4);
   int i=1, k=0, nclust=0, N=converter.N;
 
   head = converter(0);
@@ -359,7 +367,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
   typename STGM::ClusterList<T >::iterator_t  jt;
   int nProtected=0, nclust=0, inner=0;
   // construct R elements
-  SEXP R_names;
+  SEXP R_names = R_NilValue;
   PROTECT(R_names = allocVector(STRSXP, 8));
   ++nProtected;
 
@@ -437,7 +445,9 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
         ++j; // index for R result vector (SET_VECTOR_ELT)
         UNPROTECT(8);
     }
+
   } else {
+
       p = cl.back();
       m = p->m_size;
       maxSize = m;
@@ -498,28 +508,38 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
 SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_areaOut,
 		 SEXP R_Tmax, SEXP R_print_level, SEXP R_env)
 {
-    SEXP Rs = R_NilValue;
     if(isNull(R_env) || !isEnvironment(R_env))
-      error("Should provide environment for function evaluation.");
+      error(_("Should provide environment for function evaluation."));
 
+    SEXP Rs = R_NilValue;
     PROTECT(Rs = getVar(AS_CHARACTER(R_vname),R_env));
-    PL = asInteger(AS_INTEGER(R_print_level));
+    PL = INTEGER(AS_INTEGER(R_print_level))[0];
 
-    if (TYPEOF(Rs) == PROMSXP)
+    if (TYPEOF(Rs) == PROMSXP) {
       Rs = eval(Rs, R_env);
-    else error("Expression does not evaluate to a promise.");
+    } else {
+    	error(_("Expression does not evaluate to a promise."));
+    }
 
-    siminfo_t info = {asReal(AS_NUMERIC(R_dist)),0,asReal(AS_NUMERIC(R_areaIn)),
-                      asReal(AS_NUMERIC(R_areaOut)),asReal(AS_NUMERIC(R_Tmax))};
+    siminfo_t info = {REAL(R_dist)[0],0,REAL(R_areaIn)[0],
+                      REAL(R_areaOut)[0],REAL(R_Tmax)[0]};
 
-    const char * name = GET_OBJECT_CLASS(Rs);
-    if( !std::strcmp(name, "prolate" ) || !std::strcmp(name, "oblate" ) || !std::strcmp(name, "spheroid" )) {
+    /* get class */
+	SEXP Rclass = R_NilValue;
+	PROTECT(Rclass = getAttrib( Rs, R_ClassSymbol));
+	const char* name = CHAR( STRING_ELT(Rclass,0));
+	UNPROTECT(1);
+
+    if( !std::strcmp(name, "prolate" ) ||
+    	!std::strcmp(name, "oblate" ))
+    {
         STGM::ClusterList<STGM::CSpheroid>::Type cl;
         STGM::Converter<STGM::ConverterFunction<STGM::CSpheroid> > converter(Rs, R_clust);
         intern_simDefect<STGM::CSpheroid>(cl,converter,info);
 
         UNPROTECT(1);
         return convert_R_result<STGM::CSpheroid>(cl,info);
+
     } else if(!std::strcmp(name, "cylinder" )) {
         STGM::ClusterList<STGM::CCylinder>::Type cl;
         STGM::Converter<STGM::ConverterFunction<STGM::CCylinder> > converter(Rs, R_clust);
@@ -527,6 +547,7 @@ SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_ar
 
         UNPROTECT(1);
         return convert_R_result<STGM::CCylinder>(cl,info);
+
     } else if(!std::strcmp(name, "sphere" )) {
         STGM::ClusterList<STGM::CSphere>::Type cl;
         STGM::Converter<STGM::ConverterFunction<STGM::CSphere> > converter(Rs, R_clust);
@@ -534,8 +555,11 @@ SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_ar
 
         UNPROTECT(1);
         return convert_R_result<STGM::CSphere>(cl,info);
+
+    } else {
+    	error(_("Unknown class object."));
     }
-    UNPROTECT(1);
+
     return R_NilValue;
 }
 
@@ -548,15 +572,15 @@ SEXP SimDefect(SEXP R_vname, SEXP R_clust, SEXP R_dist, SEXP R_areaIn, SEXP R_ar
 SEXP GetSpheroidOnlyProjectionArea(SEXP R_spheroids) {
   STGM::Spheroids spheroids = convert_C_Spheroids(R_spheroids);
 
-  int n=spheroids.size();
-
   SEXP R_ret;
+  size_t n = spheroids.size();
   PROTECT(R_ret = allocVector(REALSXP,n));
-  //STGM::CEllipse2 ellipse;
-  for(int i=0;i<n; i++) {
+
+  for(size_t i=0; i<n; i++) {
     STGM::CEllipse2 ellipse=spheroids[i].delamProjection();
     REAL(R_ret)[i]=M_PI*ellipse.a()*ellipse.b();
   }
+
   UNPROTECT(1);
   return R_ret;
 }
@@ -565,30 +589,43 @@ SEXP GetSpheroidOnlyProjectionArea(SEXP R_spheroids) {
 SEXP GetSpheroidBothProjection(SEXP R_spheroids) {
   STGM::Spheroids spheroids = convert_C_Spheroids(R_spheroids);
 
-  SEXP R_ret;
+  SEXP R_ret = R_NilValue;
   PROTECT(R_ret = allocVector(VECSXP,2));
 
-  int n=spheroids.size();
-  STGM::Ellipses ellipses1, ellipses2;
-  for(int i=0;i<n; i++) {
-    ellipses1.push_back(spheroids[i].delamProjection());
-    ellipses2.push_back(spheroids[i].crackProjection());
+  SEXP R_tmp0, R_tmp1;
+  size_t n = spheroids.size();
+  PROTECT(R_tmp0 = allocVector(VECSXP,n));
+  PROTECT(R_tmp1 = allocVector(VECSXP,n));
+
+  STGM::CEllipse2 ellipse;
+  for(size_t i=0;i<n; i++) {
+    ellipse = spheroids[i].delamProjection();
+    SET_VECTOR_ELT(R_tmp0,i,convert_R_Ellipse2(ellipse));
+
+    ellipse = spheroids[i].crackProjection();
+    SET_VECTOR_ELT(R_tmp1,i,convert_R_Ellipse2(ellipse));
+
   }
 
-  SET_VECTOR_ELT(R_ret,0,convert_C2R_ellipses(ellipses1));
-  SET_VECTOR_ELT(R_ret,1,convert_C2R_ellipses(ellipses2));
+  SET_VECTOR_ELT(R_ret,0,R_tmp0);
+  SET_VECTOR_ELT(R_ret,1,R_tmp1);
 
-  UNPROTECT(1);
+  UNPROTECT(3);
   return R_ret;
 }
 
 /* R Interface functions  */
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
+
+R_NativePrimitiveArgType myC_t[] = { REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP };
+R_NativePrimitiveArgType myC_t2[] = { REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP };
+
 static R_CMethodDef CEntries[]  = {
-      CALLDEF(sdm,6),
-      CALLDEF(ContactRadius,8),
-      {NULL, NULL, 0}
+	{"sdm", (DL_FUNC) &sdm, 6, myC_t},
+	{"ContactRadius", (DL_FUNC) &ContactRadius, 8, myC_t2},
+    {NULL, NULL, 0, NULL}
 };
+
 static R_CallMethodDef CallEntries[] = {
         CALLDEF(GetPointsForConvexHull,2),
         CALLDEF(GetSpheroidProjection,2),
@@ -604,8 +641,11 @@ static R_CallMethodDef CallEntries[] = {
 
 void R_init_simLife(DllInfo *info) {
   R_registerRoutines(info, CEntries, CallEntries, NULL, NULL);
+  R_useDynamicSymbols(info, FALSE);
 }
 
+/*
 void R_unload_simLife(DllInfo *info){
-  /* Release resources. */
+  // nothing
 }
+*/

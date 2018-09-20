@@ -29,4 +29,6 @@ of the whole specimen.
 \references{
 Y. Murakami (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions. Elsevier, Amsterdam.
 }
-
+\author{
+M. Baaske
+}

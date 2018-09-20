@@ -4,25 +4,21 @@
 \alias{simCluster}
 \title{Generate clustered regions}
 \usage{
-simCluster(S, theta, lam, box, cond = list(eps = 0, minSize = 1),
-  check_overlap = FALSE, verbose = FALSE, pl = 0)
+simCluster(S, CL, cond = list(eps = 1e-06, minSize = 1L),
+  check_overlap = FALSE, verbose = FALSE, pl = 0L)
 }
 \arguments{
 \item{S}{(non-overlapping) geometry objects system}
 
-\item{theta}{list of simulation parameter}
-
-\item{lam}{the intensity parameter of the underlying Poisson process}
-
-\item{box}{the simulation box}
+\item{CL}{cluster regions, i.e. objects of class '\code{spheres}', possibly overlapping}
 
 \item{cond}{conditioning object for cluster algorithm, see details}
 
-\item{check_overlap}{logical, \code{check_overlap=FALSE} (default) overlapping spheres}
+\item{check_overlap}{logical, whether spheres are allowed to overlapp, \code{check_overlap=FALSE} (default)}
 
-\item{verbose}{logical, \code{verbose=FALSE} (default) additional information}
+\item{verbose}{logical, verbose output, \code{verbose=FALSE} (default)}
 
-\item{pl}{integer, \code{pl=0} for no additional information}
+\item{pl}{integer, \code{pl>0} for printing information}
 }
 \value{
 a list of the following element:
@@ -35,22 +31,26 @@ a list of the following element:
 						}
 }
 \description{
-Simulate regions of clustered objects
+Construct regions of clustered objects
 }
 \details{
-The functions generates a random non-overlapping ball configuration
-by the RSA method with some radius defined by the parameter list \code{theta}.
+The function takes a non-overlapping system of spheres, cylinders, spheroids of type "\code{prolate}" or "\code{oblate}
+and a random ball configuration \code{CL} of class "\code{spheres}" which defines clustered regions of the objects given
+in \code{S} according to the minimum required distance \code{eps} between these objects and a number of objects required
+in that region by \code{minSize} in the list \code{cond}. The function \code{\link{rsa}} is internally called if
+\code{check_overlap=TRUE} in order to make these cluster regions non-overlapping.
 }
 \examples{
 \dontrun{
 
 ## Simulate and densify particle system
 ## densify and include a secondary phase
-	
-# Not on MS-Windows 	
-#library("parallel")
-#options(mc.cores=detectCores())
-#options(parallel.option="mclapply")
+
+library(unfoldr)
+
+## Not on MS-Windows	
+# library("parallel")
+# options(mc.cores=2L)
  
 # simulation box either this kind of list
 # or use object spatstat::box3 
@@ -60,48 +60,56 @@ box <- list("xrange"=c(0,3),"yrange"=c(0,3),"zrange"=c(0,9))
 theta <- list("size"=list(0.25),"shape"=list("s"=0.25), "orientation"=list("kappa"=1))
 
 # for ease of use: constant size particles
-S <- simParticle(theta,lam=15,box=box,mu=c(0,1,0))
-
-param <- list("size"=list(0.075), "shape"=list("s"=0.75),"orientation"=list("kappa"=1))
-F  <- simFerrit(param,lam=2,box=box,mu=c(0,1,0)) 
+S <- simPoissonSystem(theta,lam=15,size="const",type="prolate",
+			orientation="rbetaiso",box=box,mu=c(0,1,0),pl=1,label="P")
+	
+## 2nd. phase (ferrit)	
+param <- list("size"=list(0.075), "shape"=list("s"=0.75))
+F <- simPoissonSystem(param,lam=2,size="const",type="prolate",
+		box=box,mu=c(0,1,0),pl=1,label="P")
 
 # apply RSA, this may take some 
-RSA <- rsa(S, box, F=F, pl = 10)
+RSA <- rsa(S,F,verbose=TRUE)
 
-## show 3d spheroids (non-overlapping)
+## show 3D spheroids (non-overlapping)
+# library(rgl)
 # cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
 # spheroids3d(RSA[1:length(S)], box, col=cols)	
 # spheroids3d(RSA[length(S):(length(S)+length(F))], box, col="gray")
 
-# construct clusters
-param <- list("r"=0.35)
-CLUST <- simCluster(RSA, param, 0.1, box, verbose=TRUE)
+## construct clusters
+CL <- simPoissonSystem(list("size"=list(0.35)), lam=0.1, size="const",
+			type="spheres", box=box, pl=1, label="F")
+
+CLUST <- simCluster(RSA, CL, verbose=TRUE)
 cat("cluster length: ",length(CLUST),"\\n")
 
+## show cluster regions
+# library(rgl)
+# open3d()
 # X <- do.call(rbind,lapply(CLUST, function(x) c(x$center,x$r)))
 # invisible(lapply(CLUST, function(x) rgl::spheres3d(X[,1:3],radius=X[,4],col="gray",alpha=0.2)))
 # cols <- c("#0000FF","#00FF00","#FF0000","#FF00FF","#FFFF00","#00FFFF")
 # invisible(lapply(CLUST, function(x) spheroids3d(RSA[x$id],box,col=cols)))
 
-# controls for 'GenSA'
-ctrl <- list(threshold.stop=0.01,max.call=10000,verbose=FALSE)
-# densify
-RET <- densifyCluster(RSA, CLUST, box, ctrl, weight=100,cl = NULL)	
+# some controls for 'GenSA'
+ctrl <- list(threshold.stop=0.01,max.call=10000)
+# densify region to clustered particles
+RET <- densifyCluster(RSA, CLUST, ctrl, weight=100,cl = NULL)	
 
 S <- RET$S
 CL <- RET$cluster
 
 ## show densified clusters 
+# library(rgl)
+# open3d()
 # X <- do.call(rbind,lapply(CLUST, function(x) c(x$center,x$r)))
 # invisible(lapply(CLUST, function(x)
 # rgl::spheres3d(x=X[,1:3],radius=X[,4],col="gray",alpha=0.2)))
 # invisible(lapply(CL, function(x) { spheroids3d(x, box, col=cols) }))
-
-## save results	
-# path <- "/"
-# save(S,file=paste0(path,"test_particle_S.rda"))
-# save(CL,file=paste0(path,"test_particle_CL.rda"))
 	
 }	
 }
-
+\author{
+M. Baaske
+}

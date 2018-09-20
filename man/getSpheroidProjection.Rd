@@ -24,4 +24,6 @@ is projected in the main load direction, i.e. the xy plane.
 \details{
 Get the projected objects (ellipses) of particles dependent on their defect types
 }
-
+\author{
+M. Baaske
+}

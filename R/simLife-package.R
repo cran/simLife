@@ -5,7 +5,7 @@
 #' 
 #' These materials are usually made up of some reinforcement primary phase and a secondary
 #' phase which is generally considered to have negative properties with regard to the overall
-#' lifetime. A spatial geometric particle model can be simulated according to some predefined
+#' lifetime. A spatial geometric particle model [3,4] can be simulated according to some predefined
 #' distributional assumptions and then taken as an input to the simulation routine of the fatigue
 #' lifetime model. The distributional model parameters of the lifetime model are specified by the
 #' user and usually have to be estimated based on experimental data in general.  
@@ -27,6 +27,10 @@
 #' \itemize{
 #'   \item Y. Murakami (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions. Elsevier, Amsterdam.
 #'   \item J.W. Evans. Random and cooperative sequential adsorption. Rev. Mod. Phys., 65: 1281-1304, 1993.
+#'   \item M. Baaske, A. Illgen, A. Weidner, H. Biermann, F. Ballani (2018). Influence of ceramic particle and fibre reinforcement in metal-matrix-composites on the VHCF behaviour. Part I: Stochastic modelling and statistical inference. In: Christ, H.-J. (ed.), Fatigue of Materials at Very High Numbers of Loading Cycles.
+#'     Experimental Techniques - Mechanisms - Modeling and Fatigue Assessment. Springer, Heidelberg. In press.
+#'   \item M. Baaske, A. Illgen, A. Weidner, H. Biermann, F. Ballani (2018). Influence of ceramic particle and fibre reinforcement in metal-matrix-composites on the VHCF behaviour. Part II: Stochastic modelling and statistical inference. In: Christ, H.-J. (ed.), Fatigue of Materials at Very High Numbers of Loading Cycles.
+#'     Experimental Techniques - Mechanisms - Modeling and Fatigue Assessment. Springer, Heidelberg. In press. 
 #' }
 #'  
 #' @section :
@@ -34,6 +38,12 @@
 #' \code{\link{woehlerDiagram}} are intended as a simple introduction to utilizing the package.
 #'
 #' @docType package
-#' @seealso \code{\link[unfoldr]{unfold}}
 #' @name simLife-package
+#' 
+#' @importFrom splancs areapl
+#' @importFrom grDevices chull
+#' @importFrom stats na.omit quantile rnorm runif rweibull
+#' @importFrom graphics abline axTicks axis box legend plot points segments
+#' 
+#' @useDynLib simLife, .registration = TRUE, .fixes = "C_"
 NULL

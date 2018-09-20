@@ -22,4 +22,6 @@ The function extracts all defects (convex hulls of projected defect areas)
 which have a larger area value than the predefined \code{area} value for some
 further analysis.
 }
-
+\author{
+M. Baaske
+}

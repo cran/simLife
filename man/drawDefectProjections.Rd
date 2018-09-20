@@ -2,21 +2,9 @@
 % Please edit documentation in R/simLife.R
 \name{drawDefectProjections}
 \alias{drawDefectProjections}
-\alias{drawDefectProjections.cylinder}
-\alias{drawDefectProjections.oblate}
-\alias{drawDefectProjections.prolate}
-\alias{drawDefectProjections.sphere}
 \title{Draw defect projections}
 \usage{
 drawDefectProjections(F, D, ...)
-
-\method{drawDefectProjections}{oblate}(F, D, ...)
-
-\method{drawDefectProjections}{prolate}(F, D, ...)
-
-\method{drawDefectProjections}{cylinder}(F, D, ...)
-
-\method{drawDefectProjections}{sphere}(F, D, ...)
 }
 \arguments{
 \item{F}{geometry system}
@@ -38,4 +26,6 @@ on the borders and calculates the convex hull of such points.
 The defect object as returned by \code{\link{simFracture}}
 and used to show the accumulated defects.
 }
-
+\author{
+M. Baaske
+}

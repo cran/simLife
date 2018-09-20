@@ -20,4 +20,3 @@ the interior of the simulation box.
 M. Baaske
 }
 \keyword{datasets}
-

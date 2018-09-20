@@ -2,26 +2,12 @@
 % Please edit documentation in R/rsaSpheroids.r
 \name{rsa}
 \alias{rsa}
-\alias{rsa.cylinder}
-\alias{rsa.oblate}
-\alias{rsa.prolate}
-\alias{rsa.sphere}
 \title{Random sequential adsorption (RSA)}
 \usage{
-rsa(S, box, F = NULL, pl = 0, verbose = TRUE)
-
-\method{rsa}{oblate}(S, box, F = NULL, pl = 0, verbose = TRUE)
-
-\method{rsa}{prolate}(S, box, F = NULL, pl = 0, verbose = TRUE)
-
-\method{rsa}{cylinder}(S, box, F = NULL, pl = 0, verbose = TRUE)
-
-\method{rsa}{sphere}(S, box, F = NULL, pl = 0, verbose = TRUE)
+rsa(S, F = NULL, pl = 0, verbose = TRUE)
 }
 \arguments{
 \item{S}{overlapping geometry system}
-
-\item{box}{simulation box}
 
 \item{F}{secondary phase objects as list}
 
@@ -43,10 +29,9 @@ is an overlap detected the position is rejected and some new random position is
 generated until all particles have put inside or the maximum number of allowed
 iterations is reached. This function is most suited for volume fractions less than 0.15.
 }
-\author{
-Felix Ballani, Markus Baaske
-}
 \references{
 J.W. Evans. Random and cooperative sequential adsorption. Rev. Mod. Phys., 65: 1281-1304, 1993.
 }
-
+\author{
+Felix Ballani, Markus Baaske
+}

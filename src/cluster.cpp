@@ -10,7 +10,7 @@
 
 #include <vector>
 #include "cluster.h"
-#include "GeometricPrimitives.h"
+
 
 #define NDIM 3
 #define DISTANCE_VEC(P1,P2,R)                      \
@@ -54,6 +54,7 @@ namespace STGM {
 
   private:
    std::vector<int> id_array;
+
   };
 
 typedef std::vector<CCluster> cluster_vector;
@@ -77,20 +78,21 @@ SEXP Cluster(SEXP R_spheres, SEXP R_s, SEXP R_cond) {
         nspheres=length(R_spheres),
         N=length(R_s);
 
-    double eps = asReal(AS_NUMERIC( getListElement( R_cond, "eps")));
-    int minSize = asInteger(AS_NUMERIC( getListElement( R_cond, "minSize")));
+    double eps = REAL(AS_NUMERIC(getListElement( R_cond, "eps")))[0];
+    int minSize = INTEGER(AS_INTEGER(getListElement( R_cond, "minSize")))[0];
 
     STGM::cluster_vector cluster;
     cluster.reserve(nspheres);
 
-    double r=0;
+    double r=0.0;
     for(int k=0; k<nspheres; k++) {
-        r = asReal(AS_NUMERIC(getListElement( VECTOR_ELT(R_spheres,k), "r")));
-        cluster.push_back(STGM::CCluster(REAL(getListElement( VECTOR_ELT(R_spheres,k), "center")),MAX(r-eps,0.0)));
+        r = REAL(getListElement( VECTOR_ELT(R_spheres, k),"r"))[0];
+        cluster.push_back(STGM::CCluster(REAL(getListElement(VECTOR_ELT(R_spheres, k), "center")),std::max(r-eps,0.0)));
     }
 
     double q[3], *p=0;
     const char *label = "N";
+
     for(int i=0; i<N; ++i) {
         p = REAL(AS_NUMERIC(getListElement(VECTOR_ELT(R_s,i),"center")));
         label = translateChar(asChar(getAttrib(VECTOR_ELT(R_s,i), install("label"))));
@@ -98,21 +100,21 @@ SEXP Cluster(SEXP R_spheres, SEXP R_s, SEXP R_cond) {
         for(int j=0; j<nspheres; ++j) {
             DISTANCE_VEC(p,cluster[j].m_p,q);
             if(VecNorm(q) < cluster[j].m_radius) {
-               cluster[j].add(asInteger(getListElement(VECTOR_ELT(R_s,i),"id")),
-                              asInteger(getAttrib(VECTOR_ELT(R_s,i),install("interior"))),
+               cluster[j].add(INTEGER(getListElement(VECTOR_ELT(R_s,i),"id"))[0],
+                              INTEGER(getAttrib(VECTOR_ELT(R_s,i),install("interior")))[0],
                               ncount);
             }
         }
     }
 
     ncount = 0;
-    int nclust = cluster.size();
-    for(int k=0; k<nclust; k++) {
-        if(cluster[k].m_ncount>minSize)
+    size_t nclust = cluster.size();
+    for(size_t k=0; k<nclust; k++) {
+        if(cluster[k].m_ncount > minSize)
           ++ncount;
     }
 
-    SEXP R_cluster = R_NilValue, R_tmp, R_ctr, R_ids = R_NilValue;
+    SEXP R_cluster = R_NilValue;
     PROTECT(R_cluster = allocVector(VECSXP,ncount));
 
     SEXP names;
@@ -122,8 +124,12 @@ SEXP Cluster(SEXP R_spheres, SEXP R_s, SEXP R_cond) {
     SET_STRING_ELT(names, 2, mkChar("r"));
     SET_STRING_ELT(names, 3, mkChar("interior"));
 
-    for(int k=0,i=0; k<nclust; k++) {
-        if(cluster[k].m_ncount>minSize) {
+    int i=0;
+    SEXP R_tmp, R_ctr, R_ids = R_NilValue;
+    for(size_t k=0; k<nclust; k++)
+    {
+        if(cluster[k].m_ncount>minSize)
+        {
           std::vector<int> &ids = cluster[k].getArrayId();
           PROTECT(R_tmp = allocVector(VECSXP,4));
           PROTECT(R_ids = allocVector(INTSXP,ids.size()));
@@ -136,7 +142,6 @@ SEXP Cluster(SEXP R_spheres, SEXP R_s, SEXP R_cond) {
           SET_VECTOR_ELT(R_tmp,2,ScalarReal(cluster[k].m_radius));
           SET_VECTOR_ELT(R_tmp,3,ScalarInteger(cluster[k].m_interior));
           setAttrib(R_tmp, R_NamesSymbol, names);
-
           SET_VECTOR_ELT(R_cluster,i,R_tmp);
 
           ++i;

@@ -4,6 +4,7 @@
 #include <R.h>
 #include <Rdefines.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif

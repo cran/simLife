@@ -37,21 +37,18 @@ shape factor \eqn{p3}, shift parameter \eqn{p4} of log times, the slope \eqn{p5}
 of the random error of log times.
 }
 \examples{
-## Simulation of individual defect times
+## Simulation of individual defect times	
 ## of some particle system
 data(AL2MC_20p_k10_F2p_S)
-## locally clustered spatial domains
-data(AL2MC_20p_k10_F2p_CL)
 
 ## generate individual failure times
 opt <- list("vickers"=107,"distTol"=1,"Tmax"=10^11,
-			"inAreafactor"=1.56, "outAreafactor"=1.43,
-			"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
+		"inAreafactor"=1.56, "outAreafactor"=1.43,
+		"pointsConvHull"=10, "scale"=1e+06,"pl"=0)
 
 par <- list("P"=c(0.01,6,0.5,75,-15,3),
-			"F"=c(0,0,0,105,-12,1),
-			"const"=list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
-					 	 "pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891))
+		"F"=c(0,0,0,105,-12,1),
+		"const"=NULL)
 
 ## simulate times
 CLT <- simTimes(S,par,vickers=opt$vickers,stress=125)
@@ -67,4 +64,6 @@ showDensity(list("Delamination"=log10(V),"Crack"=log10(U),"Time"=log10(T)),xlim=
 \seealso{
 \code{\link{getCrackTime}}, \code{\link{getDelamTime}}
 }
-
+\author{
+M. Baaske
+}

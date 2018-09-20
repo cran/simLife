@@ -7,10 +7,9 @@
 #' 	 \item{id}{ the current cluster id}
 #' 	 \item{center}{ the center of ball which defines the cluser region}
 #' 	 \item{u}{ the orientation vector of spheroid's rotational symmetry axis}
-#' 	 \item{ab}{ the axes length}
-#' 	 \item{angles}{ colatitude and longitude angle}
+#' 	 \item{acb}{ two shorter semi-axis lengths and major semi-axis length}
+#' 	 \item{angles}{ polar angle and azimuthal angle}
 #' 	 \item{rotM}{ rotational matrix, center of rotation is the center of the spheroid}
-#' 	 \item{radius}{ attribute, random radius of perfect simulation, if enabled}
 #' 	 \item{interior}{ attribute, whether the spheroid lies in the interior of the simulation box}
 #' 	 \item{label}{ attribute, character, user defined label, here: 'P' (particle) or 'F' (ferrit)}
 #'   \item{area}{ attribute, the projected area}
@@ -53,9 +52,8 @@ NULL
 #'   \item{length}{ length/height of cylinder without radii of caps}
 #' 	 \item{u}{ orientation vector of spheroid's rotational symmetry axis}
 #' 	 \item{r}{ radius of cylinder}
-#' 	 \item{angles}{ colatitude and longitude angle}
+#' 	 \item{angles}{ two shorter semi-axis lengths and major semi-axis length}
 #' 	 \item{rotM}{ rotational matrix, center of rotation is the center of the spheroid}
-#' 	 \item{radius}{ attribute, random radius of perfect simulation, if enabled}
 #' 	 \item{interior}{ attribute, whether the spheroid lies in the interior of the simulation box}
 #' 	 \item{label}{ attribute, character, user defined label, here: 'P' (particle) or 'F' (ferrit)}
 #'   \item{area}{ attribute, the projected area}
@@ -100,6 +98,10 @@ NULL
 #' @param S 	list of (non-overlapping) particles (spheroids)
 #' @param type	either \code{crack} or \code{delam}
 #' @return	    returns a list of 2d ellipse objects.
+#' 
+#' @author M. Baaske 
+#' @rdname getSpheroidProjection
+#' @export
 getSpheroidProjection <- function(S,type) {
 	if(length(S)!=length(type))
 		stop(paste0("Crack type (integer) length and number of spheroids do not match"))
@@ -124,6 +126,10 @@ getSpheroidProjection <- function(S,type) {
 #'			   returning its polygonal area and points of the convex hull
 #'
 #' @example    inst/examples/cylinder.R
+#' 
+#' @author M. Baaske 
+#' @rdname getCylinderProjection
+#' @export
 getCylinderProjection <- function(S, B=rep(1,length(S)), draw=TRUE, conv = TRUE, np=20) {
 	stopifnot(length(S)==length(B))
 	convH <- function(M, fill=TRUE) {
@@ -174,6 +180,10 @@ getCylinderProjection <- function(S, B=rep(1,length(S)), draw=TRUE, conv = TRUE,
 #'
 #' @return 	   draw projections and the convex hull (if enabled) in a 3d plot
 #'			   returning its polygonal area and points of the convex hull
+#' 
+#' @author M. Baaske 
+#' @rdname getSphereProjection
+#' @export
 getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 	convH <- function(M, fill=TRUE) {
 		x <- M[,1];
@@ -227,7 +237,26 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 #' @return list of increasing failure times
 #' @seealso \code{\link{getCrackTime}}, \code{\link{getDelamTime}}
 #' @example inst/examples/sim.R
+#' 
+#' @author M. Baaske 
+#' @rdname simTimes
+#' @export
 simTimes <- function(S, param, vickers, stress, verbose = FALSE) {
+	nms <- c("P","F","const")
+	it <- pmatch(nms,names(param))
+	if(length(it) == 0L || anyNA(it))
+	 stop(paste0("`param` is list of named arguments possibly `NULL`: ", paste(nms, collapse = ", ")))
+ 	def <- list("Em"=68.9,"Ef"=400,"nc"=28.2,"nu"=0.33,
+		 	    "pf"=0.138,"nE"=NULL,"sigref"=276,"Vref"=5891)	
+	param$const <-
+	 if(is.null(param$const)) def
+	 else {				
+		it <- which(is.na(pmatch(names(def),names(param$const))))
+		if(length(it) > 0L)
+		 append(param$const,def[it])
+	 	else def
+	 }	
+	
 	## sim times
 	logpf <- try(log(1/param$const$pf),silent=TRUE)
 	if(inherits(logpf,"try-error"))
@@ -237,75 +266,16 @@ simTimes <- function(S, param, vickers, stress, verbose = FALSE) {
 	 param$const$nE <- sqrt(tmp)
 	else stop("Constant nE is < 0.")
 
+	if(is.null(param$P) || length(param$P) != 6L)
+	 stop("Parameter for 1st. 'P' phase must not be null.")
+	nF <- length(sapply(S,function(x) attr(x,"label") == "F"))
+	if(nF > 0L && is.null(param$F))
+	 stop("Missing parameters for 2nd. phase with label 'F'.")
 	CLT <- simCrackTime(S,stress,vickers,param)
 
 	## sort ascending by times
 	CLT <- CLT[order(sapply(CLT, `[[`, "T"))]
 	return ( CLT )
-}
-
-.VV <- function(S,box) {
-	sum(unlist(lapply(S,
-	 function(x) 4/3*pi*x$ab[1]^2*x$ab[2])))/(box$xrange[2] * box$yrange[2] * box$zrange[2])
-}
-
-
-#' Simulate particle system (primary phase)
-#'
-#' Poisson spheroid system
-#'
-#' The function generates a constant size Poisson spheroid system with intensity parameter \code{lam}
-#' and random planar (with respect to the xz plane) orientation distribution. The spheroids are labeled
-#' by \eqn{P} to denote the primary particle phase which usually plays the role of some reinforcement
-#' material type in real life specimen. In order to simulate the fatigue lifetime model, see \code{\link{simDefect}},
-#' a non-overlapping configuration of particles is required which could be generated for instance by application of
-#' the the well-known random sequential adsorption (RSA) method, see \code{\link{rsa}}. Alternatively the Force-biased
-#' algorithm could be used as well, see reference below.
-#'
-#' @param theta   simulation parameter list
-#' @param lam 	  intensity parameter of the underlying Poisson point process
-#' @param box	  the simulation box
-#' @param mu	  reference direction of particles, here \code{mu=c(0,1,0)} (default)
-#' @param verbose logical, not used yet
-#'
-#' @return 	list of spheroids
-#' @references  \itemize{
-#' 				  \item{}{A. Bezrukov and D. Stoyan. Simulation and statistical analysis of random packings of ellipsoids. Particle & Particle Systems Characterization, 23(5):388 - 398, 2006.}
-#' 				  \item{}{J.W. Evans. Random and cooperative sequential adsorption. Rev. Mod. Phys., 65: 1281-1304. 1993.}
-#' 				}
-#' @seealso \code{\link{simSpheroidSystem}}
-simParticle <- function(theta,lam,box,mu=c(0,1,0),verbose=FALSE) {
-	S <- unfoldr::simSpheroidSystem(theta,lam,size="const",orientation="rbetaiso",
-			        box=box,mu=mu,pl=101,label="P")
-	if(verbose) {
-      cat("V_V: ",.VV(S,box),"\n")
-	}
-	return (S)
-}
-
-#' Simulate a second phase
-#'
-#' Poisson spheroid system
-#'
-#' The function generates a system of constant size Poisson spheroidal objects with intensity \code{lam} and random planar
-#' orientation distribution. The spheroidal objects are labeled by \eqn{F} to denote the secondary
-#' particle phase, denoting for instance some disturbing ferrit inclusions in real life specimen.
-#'
-#' @param param    simulation parameter list
-#' @param lam 	   the intensity parameter of the underlying Poisson point process
-#' @param box	   the simulation box
-#' @param mu	   reference direction of particles, here \code{mu=c(0,1,0)} (default)
-#' @param verbose  logical, ignored
-#'
-#' @return 	list of spheroids
-#' @seealso \code{\link[unfoldr]{simSpheroidSystem}}
-simFerrit <- function(param, lam, box, mu=c(0,1,0), verbose = FALSE) {
-	F <- unfoldr::simSpheroidSystem(param,lam=lam,size="const",orientation="rbetaiso",
-			        box=box,mu=mu,pl=101,label="F")
-	if(verbose) {
-    	cat("V_V: ",.VV(F,box),"\n")
-	}
-	return (F)
 }
 
 #' Critical area
@@ -320,9 +290,13 @@ simFerrit <- function(param, lam, box, mu=c(0,1,0), verbose = FALSE) {
 #' @param stress 	stress level
 #' @param factor    specific material dependent factor, default set to \code{1.56} for inner defects
 #' @param scale	    area in square millimeters (default)
+#' 
 #' @return 			critical area in \eqn{[mm]^2} (default)
 #'
 #' @references  Y. Murakami (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions. Elsevier, Amsterdam.
+#' @author M. Baaske 
+#' @rdname areaCrit
+#' @export
 areaCrit <- function(vickers, stress, factor=1.56, scale=1e+6) {
 	(((vickers + 120)/stress*factor)^12)/scale
 }
@@ -338,6 +312,10 @@ areaCrit <- function(vickers, stress, factor=1.56, scale=1e+6) {
 #' @param clust     list of defects, see \code{\link{simDefect}}
 #' @param area  	the area value lower bound
 #' @return      	list of clusters
+#' 
+#' @author M. Baaske 
+#' @rdname extractClusters
+#' @export
 extractClusters <- function(clust,area) {
 	id <- lapply(clust, function(x) if(length(x$id)>1 && x$A>area) TRUE else FALSE)
 	return ( clust[unlist(id)])
@@ -384,7 +362,9 @@ extractClusters <- function(clust,area) {
 #' 						\item{aOut}{ attribute, critical area for outer defect projections}
 #' 						\item{maxSize}{ attribute, maximum number of projected objects found in a defect}
 #' 					}
-#' @author			Markus Baaske
+#' @author M. Baaske 
+#' @rdname simDefect
+#' @export
 simDefect <- function(stress,S,CLT,opt) {
 	# areas
 	aIn <- (((opt$vickers + 120)/stress*opt$inAreafactor)^12)/opt$scale
@@ -437,6 +417,10 @@ simDefect <- function(stress,S,CLT,opt) {
 #' 				otherwise only \code{cl_info} is returned.
 #'
 #' @example inst/examples/simFailure.R
+#' 
+#' @author M. Baaske 
+#' @rdname simFracture
+#' @export
 simFracture <- function(stress, S, opt, param, last.defect = FALSE, CL = NULL) {
 	## simulate times
 	CLT <- simTimes(S,param,opt$vickers,stress)
@@ -486,6 +470,10 @@ simFracture <- function(stress, S, opt, param, last.defect = FALSE, CL = NULL) {
 #' 						starting and end points of each horizontal line (the current convex hull area value)
 #' 					    together with the starting point of the next convex hull of damage projections and
 #' 					    whether the damage occured in the interior or at the surface of the simulation box
+#' 
+#' @author M. Baaske 
+#' @rdname plotDefectAcc
+#' @export
 plotDefectAcc <- function(CL,last.path=FALSE,log.axis="x",use.col=TRUE,main="",...)
 {
 	.axTexpr <- function(side, at = axTicks(side, axp=axp, usr=usr, log=log),
@@ -659,28 +647,26 @@ plotDefectAcc <- function(CL,last.path=FALSE,log.axis="x",use.col=TRUE,main="",.
 #' @param param	    	   parameter list for random generation of individual failure times
 #' @param opt			   control parameters, see \code{\link{simTimes}}
 #' @param stress		   list of stress levels
-#' @param fun 			   optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
-#' 						     for to parallelize simulations
-#' @param cl			   optional, parallel cluster object, see 'snow'
+#' @param fun			   optional, either \code{lapply} (default) or parllel processing by \code{mclapply}
+#' @param cl			   optional, parallel cluster object
 #'
 #' @return				   matrix of failure times, first colunm corresponds to the times
 #' 						   and the second to the stress level
 #'
 #' @example inst/examples/woehler.R
-#' @author  Markus Baaske
-woehler <- function(S, CL, param, opt, stress, fun = lapply, cl = NULL) {
+#' 
+#' @author M. Baaske 
+#' @rdname woehler
+#' @export
+woehler <- function(S, CL, param, opt, stress, fun = lapply, cl = NULL)
+{
 	simF <- function(s,...) simFracture(s,...,last.defect=TRUE)$cl_info
-
-	#if(parallel.option=="mclapply" && !requireNamespace("parallel", quietly=TRUE))
-	#	stop("package 'parallel' is required to run this function in parallel mode.")
-	#fun <- get(parallel.option)
 
 	p <- tryCatch({
 			if(!is.null(cl)) {
 				m <- min(length(stress),length(cl))
 				if(any(class(cl) %in% c("MPIcluster","SOCKcluster","cluster"))) {
-					cat("Using MPI cluster...\n")
-					parallel::parLapplyLB(cl[seq_len(m)], stress, simF, opt=opt, param=param, CL=CL, S=S)
+				 parallel::parLapply(cl[seq_len(m)], stress, simF, opt=opt, param=param, CL=CL, S=S)
 				}
 			} else {
 	 			fun(stress, simF, opt=opt, param=param, CL=CL, S=S)
@@ -715,7 +701,10 @@ woehler <- function(S, CL, param, opt, stress, fun = lapply, cl = NULL) {
 #' @param ...				graphic parameters passed \code{legend}
 #'
 #' @return 					\code{NULL}
-#' @author  Markus Baaske
+#' 
+#' @author M. Baaske 
+#' @rdname woehlerDiagram
+#' @export
 woehlerDiagram <- function(W, W2 = NULL, yrange = NULL, main = "", legend.text = NULL,  ...)
 {
 	args <- list(...)
@@ -742,7 +731,7 @@ woehlerDiagram <- function(W, W2 = NULL, yrange = NULL, main = "", legend.text =
 				))
 	}
 
-	w <- cbind( log10(as.numeric(W[,2])), as.numeric(W[,1]))
+	w <- cbind(log10(as.numeric(W[,2])), as.numeric(W[,1]))
 	w2 <- if(!is.null(W2)) cbind( log10(as.numeric(W2[,2])), as.numeric(W2[,1])) else NULL
 
 	yrange <- if(is.null(yrange)) {
@@ -815,6 +804,10 @@ woehlerDiagram <- function(W, W2 = NULL, yrange = NULL, main = "", legend.text =
 #'
 #' @return 	   draw projections and the convex hull (if enabled) in a 3d plot
 #'			   return area of polygon and points of convex hull
+#' 
+#' @author M. Baaske 
+#' @rdname drawProjection
+#' @export
 drawProjection <- function(E, conv = TRUE, np=25) {
 	if (!requireNamespace("rgl", quietly=TRUE))
 	  stop("Please install 'rgl' package from CRAN repositories before running this function.")
@@ -862,16 +855,17 @@ drawProjection <- function(E, conv = TRUE, np=25) {
 #' 					 \code{\link{getCylinderProjection}}
 #'
 #' @return 			\code{NULL}
+#' @author M. Baaske
+#' @rdname drawDefectProjections
+#' @export
 drawDefectProjections <- function(F,D,...) UseMethod("drawDefectProjections",F)
 
-#' @rdname drawDefectProjections
 #' @method drawDefectProjections oblate
-#' @S3method drawDefectProjections oblate
+#' @export
 drawDefectProjections.oblate <- function(F,D,...) drawDefectProjections.prolate(F,D,...)
 
-#' @rdname drawDefectProjections
 #' @method drawDefectProjections prolate
-#' @S3method drawDefectProjections prolate
+#' @export
 drawDefectProjections.prolate <- function(F,D,...) {
 	invisible(lapply(D,
 			function(x)
@@ -880,16 +874,14 @@ drawDefectProjections.prolate <- function(F,D,...) {
 	)
 }
 
-#' @rdname drawDefectProjections
 #' @method drawDefectProjections cylinder
-#' @S3method drawDefectProjections cylinder
+#' @export
 drawDefectProjections.cylinder <- function(F,D,...) {
 	invisible(lapply(D, function(x)  getCylinderProjection(F[x$id],as.integer(x$B),...)))
 }
 
-#' @rdname drawDefectProjections
 #' @method drawDefectProjections sphere
-#' @S3method drawDefectProjections sphere
+#' @export
 drawDefectProjections.sphere <- function(F,D,...) {
 	invisible(lapply(D, function(x)  getSphereProjection(F[x$id],...)))
 }

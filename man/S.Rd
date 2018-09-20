@@ -17,10 +17,9 @@ where each list element consists of the following variables:
 	 \item{id}{ the current cluster id}
 	 \item{center}{ the center of ball which defines the cluser region}
 	 \item{u}{ the orientation vector of spheroid's rotational symmetry axis}
-	 \item{ab}{ the axes length}
-	 \item{angles}{ colatitude and longitude angle}
+	 \item{acb}{ two shorter semi-axis lengths and major semi-axis length}
+	 \item{angles}{ polar angle and azimuthal angle}
 	 \item{rotM}{ rotational matrix, center of rotation is the center of the spheroid}
-	 \item{radius}{ attribute, random radius of perfect simulation, if enabled}
 	 \item{interior}{ attribute, whether the spheroid lies in the interior of the simulation box}
 	 \item{label}{ attribute, character, user defined label, here: 'P' (particle) or 'F' (ferrit)}
   \item{area}{ attribute, the projected area}
@@ -30,4 +29,3 @@ where each list element consists of the following variables:
 M. Baaske
 }
 \keyword{datasets}
-

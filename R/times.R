@@ -22,11 +22,10 @@
 #' the defect type "delamination" is considered.
 #'
 #' @param S				   geometry objects system
-#' @param stress		   the applied stress level
-#' @param vickers   	   Vickers hardness
-#' @param param	 		   simulation parameter list of parameter vectors for both phases
-#' @param fun 			   optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
-#' 						     for to parallelize simulations
+#' @param stress		   stress level for generation of failure times
+#' @param vickers   	   Vickers hardness, see details
+#' @param param	 		   list of parameter vectors for simulation of failure times for both phases
+#' @param fun 			   optional, either \code{lapply} (default) or parllel processing by \code{mclapply}
 #'
 #' @return  a list with the following elements:
 #' 			\itemize{
@@ -40,52 +39,58 @@
 #' 							  for secondary phase }
 #' 			}
 #' @author	Felix Ballani, Markus Baaske
+#' @rdname  simCrackTime
+#' @export
 simCrackTime <- function(S,stress,vickers,param,fun=lapply) UseMethod("simCrackTime",S)
 
-#' @rdname simCrackTime
 #' @method simCrackTime oblate
-#' @S3method simCrackTime oblate
+#' @export
 simCrackTime.oblate <- function(S,stress,vickers,param,fun=lapply)
 { simCrackTime.prolate(S,stress,vickers,param) }
 # because the lengths c and a are already switched in E$ab at generation at C-level
 
-#' @rdname simCrackTime
 #' @method simCrackTime prolate
-#' @S3method simCrackTime prolate
+#' @export
 simCrackTime.prolate <- function(S,stress,vickers,param,fun=lapply) {
   simT <- function(E) {
 	uv <- numeric(2) # [u,v]
 	label <- attr(E,"label")
-	if(label == "P") {
-		theta <- .getAngle(acos(E$u[3]))
+	
+	if(label == "P")
+	{
+		theta <- try(.getAngle(acos(E$u[3])),silent=TRUE)
 		stopifnot(is.numeric(theta))
-		#cat("theta: ",theta," a: ",E$ab[1]," b: ",E$ab[2],"\n")
-		uv[1] <- getCrackTime(theta,E$ab[1],E$ab[2],stress,vickers,param$P,param$const)
+		
+		uv[1] <- getCrackTime(theta,E$acb[1],E$acb[3],stress,vickers,param$P,param$const)
 		uv[2] <- getDelamTime(E,stress,param$P)
+		
 		list("id"=E$id,"U"=uv[1],"V"=uv[2],
 			 "T"=min(uv[1],uv[2]),"B"=ifelse(uv[1]<uv[2],0,1),"A"=0,"label"=label)
+	 
 	} else {
+	
 		## always delamination for ferrit phase
 		uv[2] <- getDelamTime(E,stress,param$F)
 		list("id"=E$id,"U"=Inf,"V"=uv[2],
 			 "T"=uv[2],"B"=1,"A"=0,"label"=label)
 	}
- }
+ } 
  fun(S,simT)
 }
 
-#' @rdname simCrackTime
-#' @method simCrackTime cylinder
-#' @S3method simCrackTime cylinder
-simCrackTime.cylinder <- function(S,stress,vickers,param,fun=lapply) {
+#' @method simCrackTime cylinders
+#' @export
+simCrackTime.cylinders <- function(S,stress,vickers,param,fun=lapply) {
  simT <- function(E) {
 	uv <- numeric(2) # [u,v]
 	label <- attr(E,"label")
 	if(label == "P") {
-		theta <- .getAngle(acos(E$u[3]))
+		theta <- try(.getAngle(acos(E$u[3])),silent=TRUE)
 		stopifnot(is.numeric(theta))
-		uv[1] <- getCrackTime(theta,E$r,0.5*E$length,stress,vickers,param$P,param$const)
+		
+		uv[1] <- getCrackTime(theta,E$r,0.5*E$h,stress,vickers,param$P,param$const)
 		uv[2] <- getDelamTime(E,stress,param$P)
+		
 		list("id"=E$id,"U"=uv[1],"V"=uv[2],
 				"T"=min(uv[1],uv[2]),"B"=ifelse(uv[1]<uv[2],0,1),"A"=0,"label"=label)
 	} else {
@@ -98,10 +103,9 @@ simCrackTime.cylinder <- function(S,stress,vickers,param,fun=lapply) {
   fun(S,simT)
 }
 
-#' @rdname simCrackTime
-#' @method simCrackTime sphere
-#' @S3method simCrackTime sphere
-simCrackTime.sphere <- function(S,stress,vickers,param,fun=lapply) {
+#' @method simCrackTime spheres
+#' @export
+simCrackTime.spheres <- function(S,stress,vickers,param,fun=lapply) {
  simT <- function(E) {
 	## always delamination for spheres
 	label <- attr(E,"label")
@@ -129,7 +133,7 @@ simCrackTime.sphere <- function(S,stress,vickers,param,fun=lapply) {
 #' when generating fracture times dependent on their tendency to be more or less oriented towards the
 #' main load direction.
 #'
-#' @param theta		colatitude angle
+#' @param theta		polar angle
 #' @param a			axis length (axis orthogonal to rotational axis)
 #' @param b			rotational axis length
 #' @param stress	stress level
@@ -138,8 +142,11 @@ simCrackTime.sphere <- function(S,stress,vickers,param,fun=lapply) {
 #' @param const		constant parameters for crack
 #'
 #' @return  numeric, the individual fracture time
-#' @author	Felix Ballani
 #' @seealso \code{\link{getDelamTime}}
+#' 
+#' @author Felix Ballani, M. Baaske
+#' @rdname getCrackTime
+#' @export
 getCrackTime<-function(theta,a,b,stress,vickers,p,const){
 	# if an already cracked fiber is critical then at least 1 cycle is needed until failure,
 	# the bit randomness is only to avoid ties
@@ -168,13 +175,16 @@ getCrackTime<-function(theta,a,b,stress,vickers,p,const){
 #' time for debonding of the considered object.
 #'
 #' @param stress	stress level
-#' @param E			the object, i.e. spheroid, cylinder, sphere
-#' @param param	    simulation parameter vector
+#' @param E			object of class "\code{oblate}", "\code{prolate}", "\code{cylinders}", "\code{spheres}"
+#' @param param	    simulation parameter vector, see details
 #' @param inF		weightening factor for inner defect projection
 #' @param outF		weightening factor for outer defect projection
 #'
 #' @return  numeric, the individual debonding time
+#' 
 #' @author  Felix Ballani
+#' @rdname  getDelamTime
+#' @export
 getDelamTime <- function(E,stress,param,inF=0.5, outF=0.65){
    exp(param[4]+param[5]*log(stress*sqrt(pi)*(attr(E,"area"))^0.25*ifelse(attr(E,"interior"),inF,outF))+param[6]*rnorm(1))
 }
@@ -189,6 +199,9 @@ getDelamTime <- function(E,stress,param,inF=0.5, outF=0.65){
 #' @param ...		optional, additional graphics parameters
 #'
 #' @example inst/examples/sim.R
+#' @author  M. Baaske
+#' @rdname  showDensity
+#' @export
 showDensity <- function(dv,main="Failure time density estimation", ...) {
 	if (!requireNamespace("lattice", quietly=TRUE))
 	 stop("Please install package 'lattice' from CRAN repositories before running this function.")

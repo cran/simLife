@@ -7,12 +7,19 @@
 #include <list>
 #include "GeometricPrimitives.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#define _(String) dgettext ("simLife", String)
+#else
+#define _(String) (String)
+#endif
+
 using namespace std;
 
 #define M_PI_4		0.78539816339744830962	/* pi/4 */
-#define GET_OBJECT_CLASS(RS) translateChar(asChar(getAttrib( (RS), R_ClassSymbol)))
 
 extern SEXP getListElement (SEXP list, const char *str);
+
 extern STGM::CSphere convert_C_Sphere(SEXP R_sphere);
 extern STGM::CCylinder convert_C_Cylinder(SEXP R_cylinder);
 extern STGM::CSpheroid convert_C_Spheroid(SEXP R_spheroid);
@@ -39,7 +46,6 @@ extern "C" {
 
     ///-> exported but not for public use
     SEXP convexHull(SEXP R_points);
-
 
 #ifdef __cplusplus
 }
@@ -132,10 +138,16 @@ class CDefect {
      // distance vector between centers of objects
      CVector3d d(q->m_object.center()), z(0,0,1);
      d -= plast->m_object.center();
-     //double alpha = fabs(asin(d.dot(z)/d.Length()));
-     //Rprintf("\t minDist: %f  alpha: %f  cos: %f \n",minDist,alpha,cos(alpha));
 
-     return minDist/(cos(fabs(asin(d.dot(z)/d.Length())))+1e-6);
+     double alpha = fabs(asin(d.dot(z)/d.Length()));
+     //Rprintf("\t minDist: %f  alpha: %f  cos: %f (%f) \n",minDist,alpha,cos(alpha),sin(alpha));
+
+     /* fixed correct angle:
+      *   minDist/(cos(alpha)+1e-6)
+      *   	now to
+      *   minDist/(sin(alpha)+1e-6)
+      */
+     return minDist/(sin(alpha)+1e-6);
    }
 
    inline void append(CDefect<OBJECT_T> *current) {
@@ -215,9 +227,9 @@ struct Converter {
   }
 
   STGM::CDefect<Type> * operator() (int i) {
-     id   = asInteger( getListElement(VECTOR_ELT(Rcl,i), "id"));
-     type = asInteger( getListElement(VECTOR_ELT(Rcl,i), "B") );
-     time =    asReal( getListElement(VECTOR_ELT(Rcl,i), "T") );
+     id   = INTEGER( AS_INTEGER(getListElement(VECTOR_ELT(Rcl,i), "id")))[0];
+     type = INTEGER( AS_INTEGER(getListElement(VECTOR_ELT(Rcl,i), "B") ))[0];
+     time =    REAL( AS_NUMERIC(getListElement(VECTOR_ELT(Rcl,i), "T") ))[0];
 
      // convert object from R list
      Type sp = fun(VECTOR_ELT(Rs,id-1));

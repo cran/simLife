@@ -21,4 +21,6 @@ draw projections and the convex hull (if enabled) in a 3d plot
 The function draws the defect projections in a 3d plot after \code{spheroids3d}
 has been called.
 }
-
+\author{
+M. Baaske
+}

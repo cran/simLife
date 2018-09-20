@@ -31,6 +31,5 @@ The simulated results of the Woehler experiments are summarized in
 the load-cycle diagram as usually done in the Woehler diagram.
 }
 \author{
-Markus Baaske
+M. Baaske
 }
-

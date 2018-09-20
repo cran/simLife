@@ -2,33 +2,20 @@
 % Please edit documentation in R/times.R
 \name{simCrackTime}
 \alias{simCrackTime}
-\alias{simCrackTime.cylinder}
-\alias{simCrackTime.oblate}
-\alias{simCrackTime.prolate}
-\alias{simCrackTime.sphere}
 \title{Defect failure times}
 \usage{
 simCrackTime(S, stress, vickers, param, fun = lapply)
-
-\method{simCrackTime}{oblate}(S, stress, vickers, param, fun = lapply)
-
-\method{simCrackTime}{prolate}(S, stress, vickers, param, fun = lapply)
-
-\method{simCrackTime}{cylinder}(S, stress, vickers, param, fun = lapply)
-
-\method{simCrackTime}{sphere}(S, stress, vickers, param, fun = lapply)
 }
 \arguments{
 \item{S}{geometry objects system}
 
-\item{stress}{the applied stress level}
+\item{stress}{stress level for generation of failure times}
 
-\item{vickers}{Vickers hardness}
+\item{vickers}{Vickers hardness, see details}
 
-\item{param}{simulation parameter list of parameter vectors for both phases}
+\item{param}{list of parameter vectors for simulation of failure times for both phases}
 
-\item{fun}{optional, if \code{fun=mclapply} use \code{\link[parallel]{mclapply}}
-for to parallelize simulations}
+\item{fun}{optional, either \code{lapply} (default) or parllel processing by \code{mclapply}}
 }
 \value{
 a list with the following elements:
@@ -50,4 +37,3 @@ the defect type "delamination" is considered.
 \author{
 Felix Ballani, Markus Baaske
 }
-

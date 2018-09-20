@@ -17,29 +17,34 @@ do {                                              \
     int _i, _j;                                   \
     for (_i = 0; _i < DIM; _i++)                  \
       for (_j = 0; _j < DIM; _j++)                \
-      REAL((R))[_j+DIM*_i] = (M)[_i][_j];         \
+      REAL((R))[_i+DIM*_j] = (M)[_i][_j];         \
 } while(0)
 
 
-SEXP getSingleCall(SEXP R_fname, SEXP R_arg, SEXP R_rho) {
-    SEXP RCallBack = R_NilValue;
-    PROTECT(RCallBack = allocVector(LANGSXP,2));
-    SETCAR( RCallBack, findFun(install(CHAR(STRING_ELT(R_fname, 0))),R_rho ));
-    SETCAR(CDR(RCallBack),R_arg);
+#define COPY_R2C_MATRIX(M,R,DIM)                  \
+do {                                              \
+    int _i, _j;                                   \
+    for (_i = 0; _i < DIM; _i++)                  \
+      for (_j = 0; _j < DIM; _j++)                \
+      (M)[_i][_j] = REAL((R))[_i+DIM*_j];         \
+} while(0)
 
-    UNPROTECT(1);
-    return RCallBack;
-}
+#define SET_REAL_VECTOR(Rv, vec)  			\
+do {										\
+  int _i;		                            \
+  for(_i = 0; _i < LENGTH( (Rv) ); _i++) {	\
+    REAL((Rv))[_i] = (vec)[_i];				\
+  }											\
+} while(0)
 
 SEXP getVar(SEXP name, SEXP rho)
 {
-    SEXP ans;
     if(!isString(name) || length(name) != 1)
         error("name is not a single string");
     if(!isEnvironment(rho))
         error("rho should be an environment");
-    ans = findVar(install(CHAR(STRING_ELT(name, 0))), rho);
-    return ans;
+
+    return findVar(install(CHAR(STRING_ELT(name, 0))), rho);
 }
 
 
@@ -58,313 +63,172 @@ SEXP getListElement (SEXP list, const char *str)
 
 }
 
+SEXP convert_R_Ellipse2(STGM::CEllipse2 &ellipse) {
+  SEXP R_tmp = R_NilValue;
+  SEXP R_center, R_minor, R_major, R_ab, R_A;
+  const char *nms[] = {"id", "type", "center", "A", "ab", "minor", "major", "phi", "S", ""};
 
-STGM::CSphere convert_C_Sphere(SEXP R_sphere) {
-  SEXP R_ctr;
-  int interior=1;
-  const char *label = "N";
+  PROTECT(R_tmp = mkNamed(VECSXP,nms));
+  PROTECT(R_center = allocVector(REALSXP, 2));
+  PROTECT(R_ab = allocVector(REALSXP, 2));
+  PROTECT(R_A = allocMatrix(REALSXP,2,2));
+  PROTECT(R_minor = allocVector(REALSXP, 2));
+  PROTECT(R_major = allocVector(REALSXP, 2));
 
-  PROTECT(R_ctr = AS_NUMERIC( getListElement( R_sphere, "center")));
+  STGM::CVector2d &center = ellipse.center();
+  SET_REAL_VECTOR(R_center,center);
 
-  int id = asInteger(AS_INTEGER( getListElement( R_sphere, "id")));
-  double r = asReal(getListElement(R_sphere, "r"));
+  STGM::CVector2d &minor = ellipse.minorAxis();
+  SET_REAL_VECTOR(R_minor,minor);
 
-  if(!isNull(getAttrib(R_sphere, install("label"))))
-    label = translateChar(asChar(getAttrib(R_sphere, install("label"))));
+  STGM::CVector2d &major = ellipse.majorAxis();
+  SET_REAL_VECTOR(R_major,major);
 
-  if(!isNull(getAttrib(R_sphere, install("interior"))))
-    interior = asLogical(getAttrib(R_sphere, install("interior")));
+  REAL(R_ab)[0] = ellipse.a();    // major semi-axis (for both prolate/oblate)
+  REAL(R_ab)[1] = ellipse.b();	  // minor semi-axis (for both prolate/oblate)
 
-  return STGM::CSphere(REAL(R_ctr)[0],REAL(R_ctr)[1],REAL(R_ctr)[2],r,id,label,interior);
-  UNPROTECT(1);
+  const STGM::CMatrix2d &A = ellipse.MatrixA();
+  COPY_C2R_MATRIX(A,R_A,2);
+
+  SET_VECTOR_ELT(R_tmp,0,ScalarInteger(ellipse.Id()));
+  SET_VECTOR_ELT(R_tmp,1,ScalarInteger(STGM::ELLIPSE_2D));
+  SET_VECTOR_ELT(R_tmp,2,R_center);
+  SET_VECTOR_ELT(R_tmp,3,R_A);
+  SET_VECTOR_ELT(R_tmp,4,R_ab);
+  SET_VECTOR_ELT(R_tmp,5,R_minor);
+  SET_VECTOR_ELT(R_tmp,6,R_major);
+
+  /* return angle between [0,2pi] */
+  SET_VECTOR_ELT(R_tmp,7,ScalarReal(ellipse.phi()));
+  SET_VECTOR_ELT(R_tmp,8,ScalarReal(ellipse.b()/ellipse.a()));
+
+  UNPROTECT(6);
+  return(R_tmp);
+
+}
+
+
+STGM::CSphere convert_C_Sphere(SEXP R_sphere)
+{
+	STGM::CVector3d ctr(REAL(VECTOR_ELT( R_sphere, 1)));
+
+	return STGM::CSphere(ctr,REAL(VECTOR_ELT(R_sphere, 2))[0],
+			INTEGER(VECTOR_ELT(R_sphere, 0))[0],
+			translateChar(asChar(getAttrib(R_sphere, install("label")))),
+			INTEGER(AS_INTEGER(getAttrib(R_sphere, install("interior"))))[0]);
+}
+
+STGM::Spheres convert_C_Spheres(SEXP R_spheres)
+{
+  STGM::Spheres spheres;
+  size_t num = (size_t) LENGTH(R_spheres);
+  spheres.reserve(num);
+
+  for(size_t i=0; i < num; i++)
+      spheres.push_back(convert_C_Sphere( VECTOR_ELT(R_spheres,i) ) );
+
+  return spheres;
 }
 
 
 STGM::CCylinder convert_C_Cylinder(SEXP R_cyl)
 {
   int interior = 1;
-  double radius = 0;
   const char *label = "N";
 
-  if(!isNull(getAttrib(R_cyl, install("label"))))
-    label = translateChar(asChar(getAttrib(R_cyl, install("label"))));
-  if(!isNull(getAttrib(R_cyl, install("interior"))))
-    interior = asLogical(getAttrib(R_cyl, install("interior")));
-  if(!isNull(getAttrib(R_cyl, install("radius"))))
-    radius = asReal(getAttrib(R_cyl, install("radius")));
-
-  if(!std::strcmp(label,"F")) {
-      SEXP R_ctr;
-      PROTECT( R_ctr    = AS_NUMERIC( getListElement( R_cyl, "center")));
-      STGM::CVector3d ctr(REAL(R_ctr)),u(0,0,1);
-
-      UNPROTECT(1);
-      return STGM::CCylinder(ctr,u,0,asReal(getListElement(R_cyl, "r")),0,0,
-                 radius, asInteger(getListElement(R_cyl, "id")), label, interior);
-
-  } else {
-      SEXP R_ctr, R_u, R_angles;
-      PROTECT( R_ctr    = AS_NUMERIC( getListElement( R_cyl, "center")));
-      PROTECT( R_u      = AS_NUMERIC( getListElement( R_cyl, "u")));
-      PROTECT( R_angles = AS_NUMERIC( getListElement( R_cyl, "angles")));
-
-      STGM::CVector3d ctr(REAL(R_ctr)),u(REAL(R_u));
-      UNPROTECT(3);
-
-      return STGM::CCylinder(ctr,u, asReal(getListElement(R_cyl, "length")),
-                asReal(getListElement(R_cyl, "r")), REAL(R_angles)[0],REAL(R_angles)[1],
-                  radius, asInteger(getListElement(R_cyl, "id")), label, interior);
+  /* Ferrit - actually a sphere as a cylinder because of application of FBA
+   * otherwise 'P' for particle and 'N' default (no label)
+   * */
+  SEXP R_label = R_NilValue;
+  PROTECT(R_label = getAttrib(R_cyl, install("label")));
+  if(!isNull(R_label))
+    label = translateChar(asChar(R_label));
+  else{
+	error("Undefined attribute `label`.");
   }
 
+  SEXP R_int = R_NilValue;
+  PROTECT(R_int = getAttrib(R_cyl, install("interior")));
+  if(!isNull(R_int))
+    interior = INTEGER(AS_INTEGER(R_int))[0];
+  else {
+    error("Undefined attribute `interior`.");
+  }
+
+  /** just copy from R */
+  STGM::CVector3d ctr(REAL(VECTOR_ELT(R_cyl, 1))),
+	   		        u(REAL(VECTOR_ELT(R_cyl, 5)));
+
+  UNPROTECT(2);
+  return STGM::CCylinder(ctr,u,
+    		  	REAL(VECTOR_ELT(R_cyl,4))[0],
+                REAL(VECTOR_ELT(R_cyl,6))[0],
+				REAL(VECTOR_ELT(R_cyl,7))[0],
+				REAL(VECTOR_ELT(R_cyl,7))[1],
+                INTEGER(VECTOR_ELT(R_cyl, 0))[0],
+				label, interior);
 }
 
 
 STGM::Cylinders convert_C_Cylinders(SEXP R_cyls)
 {
-  SEXP R_tmp, R_ctr, R_u, R_angles;
-
-  int interior = 1;
-  double radius = 0;
-  const char *label = "N";
-
   STGM::Cylinders cylinders;
-  for(int i=0; i<length(R_cyls); i++) {
-      PROTECT(R_tmp = VECTOR_ELT(R_cyls,i));
-      if(!isNull(getAttrib(R_tmp, install("label"))))
-        label = translateChar(asChar(getAttrib(R_tmp, install("label"))));
-      if(!isNull(getAttrib(R_tmp, install("interior"))))
-        interior = asLogical(getAttrib(R_tmp, install("interior")));
-      if(!isNull(getAttrib(R_tmp, install("radius"))))
-        radius = asReal(getAttrib(R_tmp, install("radius")));
+  size_t num = (size_t) LENGTH(R_cyls);
+  cylinders.reserve(num);
 
-      PROTECT( R_ctr    = AS_NUMERIC( getListElement( R_tmp, "center")));
-      PROTECT( R_u      = AS_NUMERIC( getListElement( R_tmp, "u")));
-      PROTECT( R_angles = AS_NUMERIC( getListElement( R_tmp, "angles")));
+  for(size_t i=0; i<num; i++)
+   cylinders.push_back( convert_C_Cylinder(VECTOR_ELT(R_cyls,i)));
 
-      STGM::CVector3d ctr(REAL(R_ctr)),u(REAL(R_u));
-
-      cylinders.push_back(STGM::CCylinder(ctr,u,
-                            asReal(getListElement( R_tmp, "length")),
-                            asReal(getListElement( R_tmp, "r")),
-                            REAL(R_angles)[0],REAL(R_angles)[1],radius,
-                            asInteger(getListElement( R_tmp, "id")),
-                            label,interior));
-      UNPROTECT(4);
-
-  }
   return cylinders;
 }
 
-STGM::Spheroids convert_C_Spheroids(SEXP R_spheroids)
-{
-  SEXP R_tmp, R_ctr, R_u, R_ab, R_angles;
-
-  int interior = 1;
-  double radius = 0;
-  const char *label = "N";
-
-  STGM::Spheroids spheroids;
-  for(int i=0; i<length(R_spheroids); i++) {
-      PROTECT(R_tmp = VECTOR_ELT(R_spheroids,i));
-
-      if(!isNull(getAttrib(R_tmp, install("label"))))
-        label = translateChar(asChar(getAttrib(R_tmp, install("label"))));
-
-      if(!isNull(getAttrib(R_tmp, install("interior"))))
-        interior = asLogical(getAttrib(R_tmp, install("interior")));
-      if(!isNull(getAttrib(R_tmp, install("radius"))))
-        radius = asReal(getAttrib(R_tmp, install("radius")));
-
-      PROTECT( R_ctr    = AS_NUMERIC( getListElement( R_tmp, "center")));
-      PROTECT( R_u      = AS_NUMERIC( getListElement( R_tmp, "u")));
-      PROTECT( R_ab     = AS_NUMERIC( getListElement( R_tmp, "ab")));
-      PROTECT( R_angles = AS_NUMERIC( getListElement( R_tmp, "angles")));
-
-      STGM::CVector3d ctr(REAL(R_ctr)), u(REAL(R_u));
-
-      spheroids.push_back(STGM::CSpheroid(ctr,REAL(R_ab)[0],REAL(R_ab)[1],u,1.0,
-                              REAL(R_angles)[0],REAL(R_angles)[1],radius,
-                              asInteger (getListElement( R_tmp, "id")),label,interior));
-      UNPROTECT(5);
-
-  }
-  return spheroids;
-}
-
-STGM::Ellipses convert_C_Ellipses(SEXP R_ellipses)
-{
-  int id=0;
-  STGM::Ellipses ellipses;
-  SEXP R_tmp, R_ctr,R_ab, R_minor, R_major, R_A;
-
-  double rot = 0;
-  for(int i=0; i<length(R_ellipses); i++) {
-     PROTECT(R_tmp   = VECTOR_ELT(R_ellipses,i));
-     PROTECT(R_ctr   = AS_NUMERIC( getListElement( R_tmp, "center")));
-     PROTECT(R_A     = AS_NUMERIC( getListElement( R_tmp, "A")));
-     PROTECT(R_minor = AS_NUMERIC( getListElement( R_tmp, "minor")));
-     PROTECT(R_major = AS_NUMERIC( getListElement( R_tmp, "major")));
-     PROTECT(R_ab    = AS_NUMERIC( getListElement( R_tmp, "ab")));
-
-     id = asInteger (AS_INTEGER( getListElement( R_tmp, "id")));
-     rot= asReal(AS_NUMERIC(getListElement( R_tmp, "rot")));
-
-     /**
-      * BUG: Constructor with matrix A has a bug to determine the correct angle phi
-      */
-
-     STGM::CPoint2d ctr(REAL(R_ctr)[0],REAL(R_ctr)[1]);
-     STGM::CPoint2d minorAxis(REAL(R_minor)[0],REAL(R_minor)[1]);
-     STGM::CPoint2d majorAxis(REAL(R_major)[0],REAL(R_major)[1]);
-
-     ellipses.push_back(STGM::CEllipse2(ctr,majorAxis,minorAxis,REAL(R_ab)[0],REAL(R_ab)[1],id,rot));
-     UNPROTECT(6);
-  }
-  return ellipses;
-}
-
-SEXP convert_C2R_ellipses(STGM::Ellipses &ellipses) {
-  int nProtected=0, dim=2, ncomps=8;
-  int n = ellipses.size();
-
-  SEXP names, R_resultlist;
-  PROTECT(names = allocVector(STRSXP, ncomps));   ++nProtected;
-  PROTECT(R_resultlist = allocVector(VECSXP,n));  ++nProtected;
-
-  SET_STRING_ELT(names, 0, mkChar("id"));
-  SET_STRING_ELT(names, 1, mkChar("center"));
-  SET_STRING_ELT(names, 2, mkChar("ab"));
-  SET_STRING_ELT(names, 3, mkChar("minor"));
-  SET_STRING_ELT(names, 4, mkChar("major"));
-  SET_STRING_ELT(names, 5, mkChar("A"));
-  SET_STRING_ELT(names, 6, mkChar("phi"));
-  SET_STRING_ELT(names, 7, mkChar("rot"));
-
-  SEXP R_tmp,R_minor,R_major,R_A,R_center,R_ab;
-
-  for(int i = 0; i < n; i++) {
-      STGM::CEllipse2 & ellipse = ellipses[i];
-      PROTECT(R_tmp = allocVector(VECSXP,ncomps));
-      PROTECT(R_center = allocVector(REALSXP, dim));
-      PROTECT(R_ab = allocVector(REALSXP, dim));
-      PROTECT(R_minor = allocVector(REALSXP, dim));
-      PROTECT(R_major = allocVector(REALSXP, dim));
-      PROTECT(R_A = allocMatrix(REALSXP, dim,dim));
-
-      REAL(R_center)[0] = ellipse.center()[0];
-      REAL(R_center)[1] = ellipse.center()[1];
-
-      REAL(R_minor)[0] = ellipse.minorAxis()[0];
-      REAL(R_minor)[1] = ellipse.minorAxis()[1];
-
-      REAL(R_major)[0] = ellipse.majorAxis()[0];
-      REAL(R_major)[1] = ellipse.majorAxis()[1];
-
-      REAL(R_ab)[0] = ellipse.a();
-      REAL(R_ab)[1] = ellipse.b();
-
-      COPY_C2R_MATRIX(ellipse.MatrixA(),R_A,dim);
-
-      setAttrib(R_tmp, R_NamesSymbol, names);
-      SET_VECTOR_ELT(R_tmp,0,ScalarInteger(ellipse.Id()));
-      SET_VECTOR_ELT(R_tmp,1,R_center);
-      SET_VECTOR_ELT(R_tmp,2,R_ab);
-      SET_VECTOR_ELT(R_tmp,3,R_minor);
-      SET_VECTOR_ELT(R_tmp,4,R_major);
-      SET_VECTOR_ELT(R_tmp,5,R_A);
-      SET_VECTOR_ELT(R_tmp,6,ScalarReal(ellipse.phi()));
-      SET_VECTOR_ELT(R_tmp,7,ScalarReal(ellipse.rot()));
-
-      SET_VECTOR_ELT(R_resultlist,i,R_tmp);
-      UNPROTECT(6);
-  }
-
-  UNPROTECT(nProtected);
-  return R_resultlist;
-}
 
 STGM::CSpheroid convert_C_Spheroid(SEXP R_spheroid)
 {
-  SEXP R_ctr, R_u, R_ab, R_angles;
+  STGM::CVector3d ctr(REAL(VECTOR_ELT( R_spheroid, 1)));
+  STGM::CVector3d   u(REAL(VECTOR_ELT( R_spheroid, 2)));
 
-  int id = asInteger (AS_INTEGER( getListElement( R_spheroid, "id")));
-  PROTECT( R_ctr    = AS_NUMERIC( getListElement( R_spheroid, "center")));
-  PROTECT( R_u      = AS_NUMERIC( getListElement( R_spheroid, "u")));
-  PROTECT( R_ab     = AS_NUMERIC( getListElement( R_spheroid, "ab")));
-  PROTECT( R_angles = AS_NUMERIC( getListElement( R_spheroid, "angles")));
+  double *acb = REAL(VECTOR_ELT(R_spheroid, 3));
+  double *angles = REAL(VECTOR_ELT(R_spheroid, 4));
 
-  STGM::CVector3d ctr(REAL(R_ctr)[0],REAL(R_ctr)[1],REAL(R_ctr)[2]);
-  STGM::CVector3d u(REAL(R_u)[0],REAL(R_u)[1],REAL(R_u)[2]);
-
-  int interior=1;
-  double radius=0;
-  const char *label = "N";
-  if(!isNull(getAttrib(R_spheroid, install("label"))))
-    label = translateChar(asChar(getAttrib(R_spheroid, install("label"))));
-
-  if(!isNull(getAttrib(R_spheroid, install("interior"))))
-    interior = asLogical(getAttrib(R_spheroid, install("interior")));
-  if(!isNull(getAttrib(R_spheroid, install("radius"))))
-    radius = asReal(getAttrib(R_spheroid, install("radius")));
-
-  UNPROTECT(4);
-  return STGM::CSpheroid(ctr,REAL(R_ab)[0],REAL(R_ab)[1],u,1.0,REAL(R_angles)[0],REAL(R_angles)[1],radius,id,label,interior);
+  return STGM::CSpheroid (ctr,acb[0],acb[1],acb[2],u,angles[0],angles[1],
+			  INTEGER(VECTOR_ELT(R_spheroid, 0))[0],
+			  translateChar(asChar(getAttrib(R_spheroid, install("label")))),
+			  INTEGER(AS_INTEGER(getAttrib(R_spheroid, install("interior"))))[0]);
 }
 
 
-STGM::Spheres convert_C_Spheres(SEXP R_spheres) {
-  SEXP R_tmp, R_ctr;
-  int id=0,
-      N=length(R_spheres);
-  STGM::Spheres spheres;
-  spheres.reserve(N);
+STGM::Spheroids convert_C_Spheroids(SEXP R_spheroids)
+{
+  STGM::Spheroids spheroids;
+  size_t num = (size_t) LENGTH(R_spheroids);
+  spheroids.reserve(num);
 
-  double r;
-  for(int i=0; i<N; i++) {
-      PROTECT(R_tmp = VECTOR_ELT(R_spheres,i));
-      PROTECT(R_ctr = AS_NUMERIC( getListElement( R_tmp, "center")));
-      id = asInteger (AS_INTEGER( getListElement( R_tmp, "id")));
-      r = asReal(getListElement( R_tmp, "r"));
-
-      spheres.push_back(STGM::CSphere(REAL(R_ctr)[0],REAL(R_ctr)[1],REAL(R_ctr)[2],r,id));
-      UNPROTECT(2);
+  for(size_t i=0; i < num; i++)  {
+      spheroids.push_back( convert_C_Spheroid( VECTOR_ELT(R_spheroids,i) ) );
   }
 
-  return spheres;
+  return spheroids;
 }
 
-SEXP convert_R_SphereSystem(STGM::Spheres& spheres) {
-  int ncomps=3;
+STGM::CEllipse2 convert_C_Ellipse2(SEXP R_E)
+{
+   STGM::CVector2d ctr(REAL(VECTOR_ELT(R_E,2)));
+   STGM::CMatrix2d A(REAL(VECTOR_ELT(R_E,3)));
 
-  SEXP R_resultlist = R_NilValue;
-  PROTECT(R_resultlist = allocVector(VECSXP, spheres.size()) );
+   return STGM::CEllipse2(A,ctr,INTEGER(VECTOR_ELT(R_E,0))[0]);
 
-  SEXP R_tmp, R_names, R_center;
-  for(size_t k=0;k<spheres.size();k++)
-  {
-    STGM::CSphere &sphere = spheres[k];
-
-    PROTECT(R_tmp = allocVector(VECSXP,ncomps));
-    PROTECT(R_center = allocVector(REALSXP, 3));
-
-    REAL(R_center)[0]=sphere.center()[0];
-    REAL(R_center)[1]=sphere.center()[1];
-    REAL(R_center)[2]=sphere.center()[2];
-
-    SET_VECTOR_ELT(R_tmp,0,ScalarInteger(sphere.Id()));
-    SET_VECTOR_ELT(R_tmp,1,R_center);
-    SET_VECTOR_ELT(R_tmp,2,ScalarReal(sphere.r()));
-
-    PROTECT(R_names = allocVector(STRSXP, ncomps));
-    SET_STRING_ELT(R_names, 0, mkChar("id"));
-    SET_STRING_ELT(R_names, 1, mkChar("center"));
-    SET_STRING_ELT(R_names, 2, mkChar("r"));
-
-    setAttrib(R_tmp, R_NamesSymbol, R_names);
-    SET_VECTOR_ELT(R_resultlist,k,R_tmp);
-    UNPROTECT(3);
-  }
-
-  UNPROTECT(1);
-  return R_resultlist;
 }
+
+STGM::Ellipses2 convert_C_Ellipses2(SEXP R_E) {
+	STGM::Ellipses2 ellipses2;
+	size_t num = (size_t) LENGTH(R_E);
+
+	ellipses2.reserve(num);
+	for(size_t i=0; i < num; i++)  {
+		  ellipses2.push_back( convert_C_Ellipse2( VECTOR_ELT(R_E,i) ) );
+	}
+
+	return ellipses2;
+}
+
