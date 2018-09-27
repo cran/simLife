@@ -22,3 +22,7 @@ Changes with 0.5
 5) Note that some names have changed. The 'length' element in a cylinder system has now changed to height 'h' since this
  naming is more precise in what it means. For prolate and oblate spheroids the semi-axis length now are
  stored as a vector of length three under the name 'acb'. For any further details please see the manual. 
+
+6) Parallel processing is provided either by a multicore approach using 'mclapply' (unless windows is used) or
+ as recommended using an cluster environment (MPI/SOCKS/PSOCKS)
+ 

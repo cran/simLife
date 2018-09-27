@@ -12,7 +12,7 @@ par <- list("P"=c(0.01,6,0.5,75,-15,3),
 		"const"=NULL)
 
 ## simulate times
-CLT <- simTimes(S,par,vickers=opt$vickers,stress=125)
+CLT <- simTimes(S,par,vickers=opt$vickers,stress=125,cores=1L)
 
 ## times
 T <- unlist(sapply(CLT,`[[`,"T"))

@@ -4,7 +4,8 @@
 \alias{simCrackTime}
 \title{Defect failure times}
 \usage{
-simCrackTime(S, stress, vickers, param, fun = lapply)
+simCrackTime(S, stress, vickers, param, cores = getOption("simLife.mc",
+  1L))
 }
 \arguments{
 \item{S}{geometry objects system}
@@ -15,7 +16,8 @@ simCrackTime(S, stress, vickers, param, fun = lapply)
 
 \item{param}{list of parameter vectors for simulation of failure times for both phases}
 
-\item{fun}{optional, either \code{lapply} (default) or parllel processing by \code{mclapply}}
+\item{cores}{optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+also can be set by a global option "\code{simLife.mc}"}
 }
 \value{
 a list with the following elements:

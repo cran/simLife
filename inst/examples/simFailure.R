@@ -1,8 +1,6 @@
 \dontrun{
 
-## Simulate a defect accumulation
-## of a particle system
-library(simLife)
+## Simulate a defect accumulation of a particle system
 
 ## primary particles (as prolate spheroids)
 ## and secondary phase (as spheres)
@@ -31,7 +29,7 @@ par <- list("P"=c(0.01,5,0.5,50,-11,3),
 # stress amplitude applied	
 stress <- 110
 ## generate individual (particles') failure times
-CLT <- simTimes(S,par,vickers=opt$vickers,stress=stress)
+CLT <- simTimes(S,par,vickers=opt$vickers,stress=stress,cores=1L)
 
 ## generated random failure times
 T <- unlist(sapply(CLT,`[[`,"T"))

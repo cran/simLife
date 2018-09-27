@@ -25,7 +25,8 @@
 #' @param stress		   stress level for generation of failure times
 #' @param vickers   	   Vickers hardness, see details
 #' @param param	 		   list of parameter vectors for simulation of failure times for both phases
-#' @param fun 			   optional, either \code{lapply} (default) or parllel processing by \code{mclapply}
+#' @param cores			   optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+#' 							 also can be set by a global option "\code{simLife.mc}"
 #'
 #' @return  a list with the following elements:
 #' 			\itemize{
@@ -41,17 +42,18 @@
 #' @author	Felix Ballani, Markus Baaske
 #' @rdname  simCrackTime
 #' @export
-simCrackTime <- function(S,stress,vickers,param,fun=lapply) UseMethod("simCrackTime",S)
+simCrackTime <- function(S,stress,vickers,param,cores=getOption("simLife.mc",1L)) UseMethod("simCrackTime",S)
 
 #' @method simCrackTime oblate
 #' @export
-simCrackTime.oblate <- function(S,stress,vickers,param,fun=lapply)
-{ simCrackTime.prolate(S,stress,vickers,param) }
+simCrackTime.oblate <- function(S,stress,vickers,param,cores=getOption("simLife.mc",1L))
+{ simCrackTime.prolate(S,stress,vickers,param,cores) }
 # because the lengths c and a are already switched in E$ab at generation at C-level
 
 #' @method simCrackTime prolate
 #' @export
-simCrackTime.prolate <- function(S,stress,vickers,param,fun=lapply) {
+simCrackTime.prolate <- function(S,stress,vickers,param,cores=getOption("simLife.mc",1L))
+{
   simT <- function(E) {
 	uv <- numeric(2) # [u,v]
 	label <- attr(E,"label")
@@ -75,12 +77,15 @@ simCrackTime.prolate <- function(S,stress,vickers,param,fun=lapply) {
 			 "T"=uv[2],"B"=1,"A"=0,"label"=label)
 	}
  } 
- fun(S,simT)
+ if(cores > 1L && .Platform$OS.type != "windows") {
+  parallel::mclapply(S,simT,mc.cores=cores)
+ } else lapply(S,simT)
 }
 
 #' @method simCrackTime cylinders
 #' @export
-simCrackTime.cylinders <- function(S,stress,vickers,param,fun=lapply) {
+simCrackTime.cylinders <- function(S,stress,vickers,param,cores=getOption("simLife.mc",1L))
+{
  simT <- function(E) {
 	uv <- numeric(2) # [u,v]
 	label <- attr(E,"label")
@@ -100,20 +105,24 @@ simCrackTime.cylinders <- function(S,stress,vickers,param,fun=lapply) {
 				"T"=uv,"B"=1,"A"=0,"label"=label)
 	}
   }
-  fun(S,simT)
+  if(cores > 1L && .Platform$OS.type != "windows") {
+	  parallel::mclapply(S,simT,mc.cores=cores)
+  } else lapply(S,simT)
 }
 
 #' @method simCrackTime spheres
 #' @export
-simCrackTime.spheres <- function(S,stress,vickers,param,fun=lapply) {
+simCrackTime.spheres <- function(S,stress,vickers,param,cores=getOption("simLife.mc",1L)) {
  simT <- function(E) {
 	## always delamination for spheres
 	label <- attr(E,"label")
-	uv <- if(label == "P")	getDelamTime(E,stress,param$P)
+	uv <- if(label == "P") getDelamTime(E,stress,param$P)
 		  else getDelamTime(E,stress,param$F)
 	list("id"=E$id,"U"=Inf,"V"=uv,"T"=uv,"B"=1,"A"=0,"label"=label)
  }
- fun(S,simT)
+ if(cores > 1L && .Platform$OS.type != "windows") {
+	 parallel::mclapply(S,simT,mc.cores=cores)
+ } else lapply(S,simT)
 }
 
 

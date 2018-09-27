@@ -317,6 +317,7 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
       //T &scmp = head->m_object;
       jt = cl.begin(); endit = cl.end(); --endit;
 
+      //TODO: probably this loop could be run in parallel!
       for(k = 0; jt != endit; ++k )
       {
          last = *jt;
@@ -365,47 +366,39 @@ void intern_simDefect( typename STGM::ClusterList<T>::Type &cl,
 template<typename T>
 SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &info) {
   typename STGM::ClusterList<T >::iterator_t  jt;
-  int nProtected=0, nclust=0, inner=0;
+  int nclust=0, inner=0;
   // construct R elements
-  SEXP R_names = R_NilValue;
-  PROTECT(R_names = allocVector(STRSXP, 8));
-  ++nProtected;
-
-  SET_STRING_ELT(R_names, 0, mkChar("id"));
-  SET_STRING_ELT(R_names, 1, mkChar("n"));
-  SET_STRING_ELT(R_names, 2, mkChar("B"));
-  SET_STRING_ELT(R_names, 3, mkChar("interior"));
-  SET_STRING_ELT(R_names, 4, mkChar("A"));
-  SET_STRING_ELT(R_names, 5, mkChar("inner"));
-  SET_STRING_ELT(R_names, 6, mkChar("T"));
-  SET_STRING_ELT(R_names, 7, mkChar("label"));
+  const char *nms[] = {"id", "n", "B", "interior", "A", "inner", "T", "label", ""};
 
   STGM::CDefect<T> *p, *head;
   int m = 0, j = 0, l = 0, maxSize = 0;
 
-  SEXP R_cl = R_NilValue;
-  SEXP R_tmp, R_id, R_type, R_interior, R_label, R_num, R_area, R_time;
-
   if(PL>100) {
-    for(jt = cl.begin(); jt != cl.end(); ++jt) {
-        if( (*jt)->m_size > 1 || (*jt)->m_broken)
-          ++nclust;
-    }
+	  for(jt = cl.begin(); jt != cl.end(); ++jt) {
+	          if( (*jt)->m_size > 1 || (*jt)->m_broken)
+	            ++nclust;
+	  }
+  } else { nclust=1; }
 
-    PROTECT(R_cl = allocVector(VECSXP,nclust));
-    ++nProtected;
+  SEXP R_cl = R_NilValue;
+  PROTECT(R_cl = allocVector(VECSXP,nclust));
 
+  SEXP R_tmp, R_id, R_type, R_interior,
+       R_label, R_num, R_area, R_time;
+
+  if(PL > 100)							/* return all accumulated clusters */
+  {
     for(jt = cl.begin(); jt != cl.end(); ++jt)
     {
         p = *jt;
         m = p->m_size;
         if(!(m>1) && !p->m_broken) {
-            //  calling first destructor p->~CDefect() automatically
-            delete p;
+            delete p;  					/*  calling first destructor p->~CDefect() automatically */
             continue;
         }
         if(m > maxSize)
           maxSize = m;
+
         PROTECT(R_id = allocVector(INTSXP,m));
         PROTECT(R_num = allocVector(INTSXP,m));
         PROTECT(R_type = allocVector(INTSXP,m));
@@ -416,6 +409,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
 
         head = p;
         inner = head->m_inner;
+
         l=0;
         while(p != 0) {
             INTEGER(R_id)[l] = p->m_id;
@@ -430,7 +424,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
         }
         delete head;
 
-        PROTECT(R_tmp = allocVector(VECSXP,8));
+        PROTECT(R_tmp = mkNamed(VECSXP, nms));
         SET_VECTOR_ELT(R_tmp,0,R_id);
         SET_VECTOR_ELT(R_tmp,1,R_num);
         SET_VECTOR_ELT(R_tmp,2,R_type);
@@ -439,21 +433,18 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
         SET_VECTOR_ELT(R_tmp,5,ScalarInteger(inner));
         SET_VECTOR_ELT(R_tmp,6,R_time);
         SET_VECTOR_ELT(R_tmp,7,R_label);
-        setAttrib(R_tmp, R_NamesSymbol, R_names);
 
         SET_VECTOR_ELT(R_cl,j,R_tmp);
-        ++j; // index for R result vector (SET_VECTOR_ELT)
+        ++j; 								/* index for R result vector (SET_VECTOR_ELT) */
         UNPROTECT(8);
     }
 
-  } else {
+  } else {									/* return only last (final) cluster */
 
       p = cl.back();
       m = p->m_size;
       maxSize = m;
-      // result
-      PROTECT(R_cl = allocVector(VECSXP,1));
-      ++nProtected;
+
       // further list objects
       PROTECT(R_id = allocVector(INTSXP,m));
       PROTECT(R_num = allocVector(INTSXP,m));
@@ -463,7 +454,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       PROTECT(R_area = allocVector(REALSXP,m));
       PROTECT(R_time = allocVector(REALSXP,m));
 
-      l = 0; // p is last defect
+      l = 0; 								/* p is last defect */
       inner = p->m_inner;
       while(p != 0) {
           INTEGER(R_id)[l] = p->m_id;
@@ -480,7 +471,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       for(jt = cl.begin(); jt != cl.end(); ++jt)
         delete (*jt);
 
-      PROTECT(R_tmp = allocVector(VECSXP,8));
+      PROTECT(R_tmp = mkNamed(VECSXP, nms));
       SET_VECTOR_ELT(R_tmp,0,R_id);
       SET_VECTOR_ELT(R_tmp,1,R_num);
       SET_VECTOR_ELT(R_tmp,2,R_type);
@@ -489,7 +480,6 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       SET_VECTOR_ELT(R_tmp,5,ScalarInteger(inner));
       SET_VECTOR_ELT(R_tmp,6,R_time);
       SET_VECTOR_ELT(R_tmp,7,R_label);
-      setAttrib(R_tmp, R_NamesSymbol, R_names);
 
       SET_VECTOR_ELT(R_cl,0,R_tmp);
       UNPROTECT(8);
@@ -500,7 +490,7 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
   setAttrib(R_cl, install("areaMax"), ScalarReal(info.areaMax));
   setAttrib(R_cl, install("maxSize"), ScalarInteger(maxSize));
 
-  UNPROTECT(nProtected);
+  UNPROTECT(1);
   return R_cl;
 }
 

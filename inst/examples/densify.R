@@ -5,9 +5,9 @@
 
 library(unfoldr)
 
-## Not on MS-Windows	
-# library("parallel")
-# options(mc.cores=2L)
+## Unless MS-Windows platform	
+# library(parallel)
+# options(simLife.mc=2L)
  
 # simulation box either this kind of list
 # or use object spatstat::box3 
@@ -52,7 +52,7 @@ cat("cluster length: ",length(CLUST),"\n")
 # some controls for 'GenSA'
 ctrl <- list(threshold.stop=0.01,max.call=10000)
 # densify region to clustered particles
-RET <- densifyCluster(RSA, CLUST, ctrl, weight=100,cl = NULL)	
+RET <- densifyCluster(RSA, CLUST, ctrl, weight=100, cores = 1L, cl = NULL)	
 
 S <- RET$S
 CL <- RET$cluster

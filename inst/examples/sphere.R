@@ -1,9 +1,9 @@
 ## Simulate a particle system by spheres and densified clusters 
 ## Generate a non-overlapping configuration of spheres by RSA
 
-## MS-Windows only
+## Not on MS-Windows platform
 # library(parallel)
-# options(mc.cores=2L)
+# options(simLife.mc=2L)
 
 library(unfoldr)
 
@@ -28,9 +28,11 @@ CL <- simPoissonSystem(list(size=list(0.35)),lam=0.1,size="const",box=box,
 # construct cluster objects
 CLUST <- simCluster(S2, CL, verbose=TRUE)
 	
-# densify
+# densify (no parallel processing)
+# use a MPI/SOCKS/PSOCKS cluster cl
+# or cores>1 for platforms other than Windows
 ctrl <- list(threshold.stop=0.01, max.call=5000, verbose=FALSE)
-RET <- densifyCluster(S2, CLUST, ctrl, weight=20)
+RET <- densifyCluster(S2, CLUST, ctrl, weight=20, cores=1L, cl=NULL)
 
 ####################################################################
 ## Optional: 3D visualization of densified sphere clusters

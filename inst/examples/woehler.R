@@ -1,8 +1,8 @@
 \dontrun{
 
-## For use with parallel package
+## Unless MS-Windows
 # library(parallel)
-# options(mc.cores=2L)
+# options(simLife.mc=2L)
 
 # primary particles and secondary phase (ferrit) 
 # which is already clustered and densified 
@@ -22,11 +22,14 @@ nsim <- 10
 stress <- as.list(seq(from=90,to=140,by=10))
 
 cl <- NULL
-## might use a MPI/SOCKS/PSOCKS cluster objects
-#cl <- makeCluster(8)
+## MPI/SOCKS/PSOCKS cluster object (even on Windows)
+## must initialize RNG stream (rlecuyer) for reproducible results
+# RNGkind("L'Ecuyer-CMRG")
+# cl <- makeCluster(8)
+# clusterSetRNGStream(cl)
 	
 # the following code may take some time
-W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim),fun=lapply,cl=cl)
+W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim),cores=1L,cl=cl)
 woehlerDiagram(W, yrange=c(70,145))
 
 ## do not forget to stop cluster if used 

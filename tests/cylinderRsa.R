@@ -3,8 +3,6 @@
 
 library(simLife)
 library(unfoldr)
-library(parallel)
-options(mc.cores=2L)
 
 lam <- 35
 box <- list("xrange"=c(0,3),"yrange"=c(0,3),"zrange"=c(0,9))

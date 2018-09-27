@@ -93,7 +93,7 @@ NULL
 #' the particle is orthogonally projected otherwise the whole particle
 #' is projected in the main load direction, i.e. the xy plane.
 #'
-#' Get the projected objects (ellipses) of particles dependent on their defect types
+#' Get the projected objects (ellipses) of particles dependant on their defect types
 #'
 #' @param S 	list of (non-overlapping) particles (spheroids)
 #' @param type	either \code{crack} or \code{delam}
@@ -216,7 +216,7 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 #'
 #' Simulate crack times
 #'
-#' The function randomly generates phase dependent failure times of defect types \code{crack} and \code{delam}.
+#' The function randomly generates phase dependant failure times of defect types \code{crack} and \code{delam}.
 #' The accumulation structure of defects is initialized containing the failure times of objects in ascending order.
 #' The failure times of the defect type \code{crack} follow a Weibull distribution, see \code{\link{simCrackTime}}.
 #' The failure times of the defect type \code{delam} roughly depend on the projected area of the object, the
@@ -231,8 +231,10 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 #' @param S 			   (non-overlapping) geometry system
 #' @param param 		   parameters for generating failure times
 #' @param vickers		   vickers hardness
-#' @param stress    	   stress level
-#' @param verbose 		   logical: ignored
+#' @param stress    	   stress level to be applied
+#' @param cores			   optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+#' 							 also can be set by a global option "\code{simLife.mc}"
+#' @param verbose 		   logical, not used yet
 #'
 #' @return list of increasing failure times
 #' @seealso \code{\link{getCrackTime}}, \code{\link{getDelamTime}}
@@ -241,7 +243,7 @@ getSphereProjection <- function(S, draw=TRUE, conv = TRUE, np=20) {
 #' @author M. Baaske 
 #' @rdname simTimes
 #' @export
-simTimes <- function(S, param, vickers, stress, verbose = FALSE) {
+simTimes <- function(S, param, vickers, stress, cores = getOption("simLife.mc",1L), verbose = FALSE) {
 	nms <- c("P","F","const")
 	it <- pmatch(nms,names(param))
 	if(length(it) == 0L || anyNA(it))
@@ -271,7 +273,7 @@ simTimes <- function(S, param, vickers, stress, verbose = FALSE) {
 	nF <- length(sapply(S,function(x) attr(x,"label") == "F"))
 	if(nF > 0L && is.null(param$F))
 	 stop("Missing parameters for 2nd. phase with label 'F'.")
-	CLT <- simCrackTime(S,stress,vickers,param)
+	CLT <- simCrackTime(S,stress,vickers,param,cores)
 
 	## sort ascending by times
 	CLT <- CLT[order(sapply(CLT, `[[`, "T"))]
@@ -287,11 +289,11 @@ simTimes <- function(S, param, vickers, stress, verbose = FALSE) {
 #' of the whole specimen.
 #'
 #' @param vickers 	specific Vickers hardness
-#' @param stress 	stress level
-#' @param factor    specific material dependent factor, default set to \code{1.56} for inner defects
-#' @param scale	    area in square millimeters (default)
+#' @param stress 	stress level to be applied
+#' @param factor    specific material dependant factor, default set to \code{1.56} for inner defects
+#' @param scale	    scale factor, area in square millimeters (default)
 #' 
-#' @return 			critical area in \eqn{[mm]^2} (default)
+#' @return 			critical area in \eqn{[mm]^2}
 #'
 #' @references  Y. Murakami (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions. Elsevier, Amsterdam.
 #' @author M. Baaske 
@@ -608,28 +610,29 @@ plotDefectAcc <- function(CL,last.path=FALSE,log.axis="x",use.col=TRUE,main="",.
 			})
 }
 
+## obsolete!
 ## Splitting a list in nearly equal chunks
 ## adopted from snow package with slight modifications
 ## to handle special inputs, used for ballancing cluster
 ## loads for MPI or SOCKS connections
-.splitList <- function(x,n) {
-	nx <- length(x)
-	if( nx > n ) {
-		i <- 1:nx
-		if(n == 0)
-			list()
-		else if(n == 1 || length(x) == 1)
-			list(x)
-		else {
-			q <- quantile(i, seq(0, 1, length.out = n + 1))
-			lapply(structure(split(1:length(x),
-								cut(i, round(q), include.lowest = TRUE))
-							,names=NULL),function(i) x[i])
-		}
-	} else {
-		x
-	}
-}
+#.splitList <- function(x,n) {
+#	nx <- length(x)
+#	if( nx > n ) {
+#		i <- 1:nx
+#		if(n == 0)
+#			list()
+#		else if(n == 1 || length(x) == 1)
+#			list(x)
+#		else {
+#			q <- quantile(i, seq(0, 1, length.out = n + 1))
+#			lapply(structure(split(1:length(x),
+#								cut(i, round(q), include.lowest = TRUE))
+#							,names=NULL),function(i) x[i])
+#		}
+#	} else {
+#		x
+#	}
+#}
 
 #' Woehler experiment
 #'
@@ -647,8 +650,10 @@ plotDefectAcc <- function(CL,last.path=FALSE,log.axis="x",use.col=TRUE,main="",.
 #' @param param	    	   parameter list for random generation of individual failure times
 #' @param opt			   control parameters, see \code{\link{simTimes}}
 #' @param stress		   list of stress levels
-#' @param fun			   optional, either \code{lapply} (default) or parllel processing by \code{mclapply}
-#' @param cl			   optional, parallel cluster object
+#' @param cores			   optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+#' 						   also can be set by a global option "\code{simLife.mc}"
+#' @param cl			   optional, cluster environment object wich has priority of usage compared to multicore processing
+#' 							in case of \code{cores>1}   
 #'
 #' @return				   matrix of failure times, first colunm corresponds to the times
 #' 						   and the second to the stress level
@@ -658,29 +663,33 @@ plotDefectAcc <- function(CL,last.path=FALSE,log.axis="x",use.col=TRUE,main="",.
 #' @author M. Baaske 
 #' @rdname woehler
 #' @export
-woehler <- function(S, CL, param, opt, stress, fun = lapply, cl = NULL)
-{
+woehler <- function(S, CL, param, opt, stress, cores = getOption("simLife.mc",1L), cl = NULL)
+{	
 	simF <- function(s,...) simFracture(s,...,last.defect=TRUE)$cl_info
-
+	
 	p <- tryCatch({
 			if(!is.null(cl)) {
 				m <- min(length(stress),length(cl))
 				if(any(class(cl) %in% c("MPIcluster","SOCKcluster","cluster"))) {
 				 parallel::parLapply(cl[seq_len(m)], stress, simF, opt=opt, param=param, CL=CL, S=S)
 				}
+			} else if(cores > 1L && .Platform$OS.type != "windows") {
+				parallel::mclapply(stress, simF, mc.cores=cores, opt=opt, param=param, CL=CL, S=S)
 			} else {
-	 			fun(stress, simF, opt=opt, param=param, CL=CL, S=S)
+	 			message("Serial processing may take a long time. Consider to use a parallel cluster!")
+				lapply(stress, simF, opt=opt, param=param, CL=CL, S=S)
 			}
 		  },error=function(e) {
 			  structure(e,class=c("error","condition"),
 					  error=simpleError(.makeMessage("Woehler experiment failed.\n")))
-		    }
+		    	}
 		)
 	if(!is.null(attr(p,"error")))
 	  return (p)
-	as.data.frame(
+	
+    as.data.frame(
 	  do.call(rbind,
-	     fun(seq_len(length(p)),
+	     lapply(seq_len(length(p)),
 		   function(i) c("stress"=stress[[i]],as.vector(p[[i]])))
  	  )
  	)

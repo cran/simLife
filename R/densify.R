@@ -157,13 +157,13 @@
 #' and a random ball configuration \code{CL} of class "\code{spheres}" which defines clustered regions of the objects given
 #' in \code{S} according to the minimum required distance \code{eps} between these objects and a number of objects required
 #' in that region by \code{minSize} in the list \code{cond}. The function \code{\link{rsa}} is internally called if
-#' \code{check_overlap=TRUE} in order to make these cluster regions non-overlapping.
+#' \code{do.rsa=TRUE} in order to make these cluster regions non-overlapping.
 #'
 #' @param S				(non-overlapping) geometry objects system
 #' @param CL			cluster regions, i.e. objects of class '\code{spheres}', possibly overlapping
 #' @param cond			conditioning object for cluster algorithm, see details
-#' @param check_overlap	logical, whether spheres are allowed to overlapp, \code{check_overlap=FALSE} (default)
-#' @param verbose 		logical, verbose output, \code{verbose=FALSE} (default)
+#' @param do.rsa	    optional, whether to apply \code{\link{rsa}} algorithm to cluster spheres
+#' @param verbose 		optional, verbose output, \code{verbose=FALSE} (default)
 #' @param pl		    integer, \code{pl>0} for printing information
 #'
 #' @return 				a list of the following element:
@@ -181,21 +181,21 @@
 #' @rdname simCLuster
 #' @export
 simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
-				check_overlap = FALSE, verbose = FALSE, pl = 0L)
+				do.rsa = FALSE, verbose = FALSE, pl = 0L)
 {
 	# check arguments for 'cond'
 	it <- match(names(cond), c("eps","minSize"))
 	if (anyNA(it))
 	 stop("Expected 'cond' as named list of arguments: 'eps','minSize'")
 		
-	#sp <- unfoldr::simPoissonSystem(theta,lam,size="const",type="spheres",
-	#		box=box,pl=1,label=as.character("C"))
+ 	## former version:
+	## now densified cluster regions must be provided by CL  
+	## sp <- unfoldr::simPoissonSystem(theta,lam,size="const",type="spheres",
+	##		box=box,pl=1,label=as.character("C"))
 	
-	# apply rsa
-	if(check_overlap){
+	# apply rsa if needed
+	if(do.rsa)
 	  CL <- rsa(CL,pl=pl,verbose=verbose)
-    }
-	
 	# call clustering algorithm
 	.Call(C_Cluster,CL,S,cond)
 }
@@ -207,9 +207,8 @@ simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
 		warning(paste("Overlaps detected in cluster:",paste0("",unlist(i),".",collapse=","),"Consider to increase weight parameter and re-run the densification."))
 	
 	## update interior
-	## this now has to be called by the user!
-	
-	#ids <- unfoldr::updateIntersections(A)
+	## this now has to be called by the user now!	
+	# ids <- unfoldr::updateIntersections(A)
 	
 	for(k in 1:length(A)) {
 		# update origin0/origin1
@@ -221,10 +220,6 @@ simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
 	
 	#attr(A,"interior") <- all(as.logical(ids))
 	return (A)
-}
-
-.update.spheroid <- function(A) {
-	return ( .update.prolate(A) )
 }
 
 .update.oblate <- function(A) {
@@ -251,8 +246,7 @@ simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
 	i <- .checkEn(A,.checkOverlapSphere)
 	if(length(i)>0)
 	 warning(paste("Overlaps detected in cluster:",paste0("",unlist(i),".",collapse=","),"Consider to increase weight parameter and re-run the densification."))
-			
- 
+	 
     ## see above: update interior
 	# ids <- unfoldr::updateIntersections(A)
 	# for(k in 1:length(A))
@@ -281,7 +275,8 @@ simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
 #' @param ctrl  			control arguments passed to function \code{GenSA}
 #' @param weight   			optional, weight factor \code{weight=10} (default)
 #' @param info			    optional, logical, if TRUE return result from \code{GenSA} call
-#' @param fun 			    optional, either \code{lapply} (default) or parllel processing by \code{mclapply}
+#' @param cores				optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+#' 							 also can be set by a global option "\code{simLife.mc}"
 #' @param cl 				optional, parallel cluster object
 #'
 #' @return					a list of all objects (including newly densified regions) named \code{S}
@@ -292,7 +287,9 @@ simCluster <- function(S, CL, cond = list("eps" = 1e-6, "minSize" = 1L),
 #' @author M. Baaske 
 #' @rdname densifyCluster
 #' @export
-densifyCluster <- function(F, CL, ctrl, weight = 10, info = FALSE, fun = lapply, cl = NULL) {
+densifyCluster <- function(F, CL, ctrl, weight = 10, info = FALSE,
+						cores = getOption("simLife.mc",1L), cl = NULL)
+{
 	if(!requireNamespace("GenSA", quietly=TRUE))
 	  stop("package 'GenSA' is required to run this function.")
   	
@@ -340,39 +337,39 @@ densifyCluster <- function(F, CL, ctrl, weight = 10, info = FALSE, fun = lapply,
 	else if(attr(F,"class")=="spheres") {
 		FUN <- .EnSphere
 	}
-	else { stop("Unknow object type. --> exiting.")}
+	else { stop("Unknow object type. Stopping now.")}
 
 	N <- length(CL)
 	cat("densify clusters of length: ",length(CL), " \n")
-
-	A <- tryCatch(
-			{
-				L <- lapply(seq_len(N),function(i) list("S"=F[CL[[i]]$id],"clust"=CL[[i]])	)
-				if(!is.null(cl)) {
-					m <- min(N,length(cl))
-					parallel::clusterExport(cl[1:m],list(".getA",".slice",".spheroidTouchDistCoeff",".En",".checkEn"))
-					if(any(class(cl) %in% c("MPIcluster"))) {
-						parallel::parLapplyLB(cl[seq_len(m)],L,densify,box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN)
-					} else {
-						do.call(c, parallel::clusterApply(cl[seq_len(m)], .splitList(L, length(cl)), fun, densify,
-										box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN))
-					}
-				} else {
-					fun(L,densify,box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN)
-				}
-
+	
+	A <- tryCatch({			
+			L <- lapply(seq_len(N),function(i) list("S"=F[CL[[i]]$id],"clust"=CL[[i]])	)
+			if(!is.null(cl)) {
+				m <- min(N,length(cl))
+				parallel::clusterExport(cl[1:m],list(".getA",".slice",".spheroidTouchDistCoeff",".En",".checkEn"))
+				if(any(class(cl) %in% c("MPIcluster","SOCKcluster","cluster")))
+				 parallel::parLapplyLB(cl[seq_len(m)],L,densify,box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN)
+				
+			} else if(cores > 1L && .Platform$OS.type != "windows") {
+			   parallel::mclapply(L,mc.cores=cores,densify,box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN)
+			} else {
+			   lapply(L,densify,box=box,ctrl=ctrl,weight=weight,FUNCTION=FUN)
 			}
-			, error = function(e) {
-				structure(e,class=c("error","condition"),
+
+		}, error = function(e) {
+				 	 structure(e,class=c("error","condition"),
 						error=simpleError(.makeMessage("Cluster construction failed.\n")))
-		 }
+	 			   }
 	)
 	
 	if(length(A)>0) {
 		# check overlap and update
 		cl.name <- class(F)
 		for(i in 1:length(A)) {
-			class(A[[i]]) <- cl.name		
+			class(A[[i]]) <- cl.name	
+			## update function only checks overlaps after densification
+			## and not whether moved objects are interior or not
+			## this has to be done externally by unfoldr::updateIntersections
 			A[[i]] <- .update(A[[i]])
 		}
 		# copy to original system objects

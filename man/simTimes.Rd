@@ -4,7 +4,8 @@
 \alias{simTimes}
 \title{Crack time simulation}
 \usage{
-simTimes(S, param, vickers, stress, verbose = FALSE)
+simTimes(S, param, vickers, stress, cores = getOption("simLife.mc", 1L),
+  verbose = FALSE)
 }
 \arguments{
 \item{S}{(non-overlapping) geometry system}
@@ -13,9 +14,12 @@ simTimes(S, param, vickers, stress, verbose = FALSE)
 
 \item{vickers}{vickers hardness}
 
-\item{stress}{stress level}
+\item{stress}{stress level to be applied}
 
-\item{verbose}{logical: ignored}
+\item{cores}{optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+also can be set by a global option "\code{simLife.mc}"}
+
+\item{verbose}{logical, not used yet}
 }
 \value{
 list of increasing failure times
@@ -24,7 +28,7 @@ list of increasing failure times
 Simulate crack times
 }
 \details{
-The function randomly generates phase dependent failure times of defect types \code{crack} and \code{delam}.
+The function randomly generates phase dependant failure times of defect types \code{crack} and \code{delam}.
 The accumulation structure of defects is initialized containing the failure times of objects in ascending order.
 The failure times of the defect type \code{crack} follow a Weibull distribution, see \code{\link{simCrackTime}}.
 The failure times of the defect type \code{delam} roughly depend on the projected area of the object, the
@@ -51,7 +55,7 @@ par <- list("P"=c(0.01,6,0.5,75,-15,3),
 		"const"=NULL)
 
 ## simulate times
-CLT <- simTimes(S,par,vickers=opt$vickers,stress=125)
+CLT <- simTimes(S,par,vickers=opt$vickers,stress=125,cores=1L)
 
 ## times
 T <- unlist(sapply(CLT,`[[`,"T"))

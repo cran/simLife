@@ -4,7 +4,8 @@
 \alias{woehler}
 \title{Woehler experiment}
 \usage{
-woehler(S, CL, param, opt, stress, fun = lapply, cl = NULL)
+woehler(S, CL, param, opt, stress, cores = getOption("simLife.mc", 1L),
+  cl = NULL)
 }
 \arguments{
 \item{S}{non-overlapping object system}
@@ -17,9 +18,11 @@ woehler(S, CL, param, opt, stress, fun = lapply, cl = NULL)
 
 \item{stress}{list of stress levels}
 
-\item{fun}{optional, either \code{lapply} (default) or parllel processing by \code{mclapply}}
+\item{cores}{optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+also can be set by a global option "\code{simLife.mc}"}
 
-\item{cl}{optional, parallel cluster object}
+\item{cl}{optional, cluster environment object wich has priority of usage compared to multicore processing
+in case of \code{cores>1}}
 }
 \value{
 matrix of failure times, first colunm corresponds to the times
@@ -39,9 +42,9 @@ cluster object.
 \examples{
 \dontrun{
 
-## For use with parallel package
+## Unless MS-Windows
 # library(parallel)
-# options(mc.cores=2L)
+# options(simLife.mc=2L)
 
 # primary particles and secondary phase (ferrit) 
 # which is already clustered and densified 
@@ -61,11 +64,14 @@ nsim <- 10
 stress <- as.list(seq(from=90,to=140,by=10))
 
 cl <- NULL
-## might use a MPI/SOCKS/PSOCKS cluster objects
-#cl <- makeCluster(8)
+## MPI/SOCKS/PSOCKS cluster object (even on Windows)
+## must initialize RNG stream (rlecuyer) for reproducible results
+# RNGkind("L'Ecuyer-CMRG")
+# cl <- makeCluster(8)
+# clusterSetRNGStream(cl)
 	
 # the following code may take some time
-W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim),fun=lapply,cl=cl)
+W <- woehler(S, CL=NULL, par, opt, stress=rep(stress,each=nsim),cores=1L,cl=cl)
 woehlerDiagram(W, yrange=c(70,145))
 
 ## do not forget to stop cluster if used 

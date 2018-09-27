@@ -6,9 +6,9 @@
 
 library(unfoldr)
 
-## Not on MS-Windows	
-#library("parallel")
-#options(mc.cores=2L)
+## Unless MS-Windows platform	
+# library(parallel)
+# options(simLife.mc=2L)
 
 lam <- 35
 box <- list("xrange"=c(0,3),"yrange"=c(0,3),"zrange"=c(0,9))
@@ -46,7 +46,7 @@ CLUST <- simCluster(S2, CL, cond=list("eps"=1e-7,"minSize"=1L), verbose=TRUE, pl
 	
 ## densify
 ctrl <- list(threshold.stop=0.01,max.call=5000,verbose=FALSE)
-RET <- densifyCluster(S2, CLUST, ctrl, weight=10, cl = NULL)	
+RET <- densifyCluster(S2, CLUST, ctrl, weight=10, cores = 1L, cl = NULL)	
 G <- RET$cluster
 
 ####################################################################

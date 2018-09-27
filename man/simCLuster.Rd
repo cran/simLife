@@ -5,7 +5,7 @@
 \title{Generate clustered regions}
 \usage{
 simCluster(S, CL, cond = list(eps = 1e-06, minSize = 1L),
-  check_overlap = FALSE, verbose = FALSE, pl = 0L)
+  do.rsa = FALSE, verbose = FALSE, pl = 0L)
 }
 \arguments{
 \item{S}{(non-overlapping) geometry objects system}
@@ -14,9 +14,9 @@ simCluster(S, CL, cond = list(eps = 1e-06, minSize = 1L),
 
 \item{cond}{conditioning object for cluster algorithm, see details}
 
-\item{check_overlap}{logical, whether spheres are allowed to overlapp, \code{check_overlap=FALSE} (default)}
+\item{do.rsa}{optional, whether to apply \code{\link{rsa}} algorithm to cluster spheres}
 
-\item{verbose}{logical, verbose output, \code{verbose=FALSE} (default)}
+\item{verbose}{optional, verbose output, \code{verbose=FALSE} (default)}
 
 \item{pl}{integer, \code{pl>0} for printing information}
 }
@@ -38,7 +38,7 @@ The function takes a non-overlapping system of spheres, cylinders, spheroids of 
 and a random ball configuration \code{CL} of class "\code{spheres}" which defines clustered regions of the objects given
 in \code{S} according to the minimum required distance \code{eps} between these objects and a number of objects required
 in that region by \code{minSize} in the list \code{cond}. The function \code{\link{rsa}} is internally called if
-\code{check_overlap=TRUE} in order to make these cluster regions non-overlapping.
+\code{do.rsa=TRUE} in order to make these cluster regions non-overlapping.
 }
 \examples{
 \dontrun{
@@ -48,9 +48,9 @@ in that region by \code{minSize} in the list \code{cond}. The function \code{\li
 
 library(unfoldr)
 
-## Not on MS-Windows	
-# library("parallel")
-# options(mc.cores=2L)
+## Unless MS-Windows platform	
+# library(parallel)
+# options(simLife.mc=2L)
  
 # simulation box either this kind of list
 # or use object spatstat::box3 
@@ -95,7 +95,7 @@ cat("cluster length: ",length(CLUST),"\\n")
 # some controls for 'GenSA'
 ctrl <- list(threshold.stop=0.01,max.call=10000)
 # densify region to clustered particles
-RET <- densifyCluster(RSA, CLUST, ctrl, weight=100,cl = NULL)	
+RET <- densifyCluster(RSA, CLUST, ctrl, weight=100, cores = 1L, cl = NULL)	
 
 S <- RET$S
 CL <- RET$cluster

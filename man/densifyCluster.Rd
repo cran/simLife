@@ -4,8 +4,8 @@
 \alias{densifyCluster}
 \title{Densify clusters}
 \usage{
-densifyCluster(F, CL, ctrl, weight = 10, info = FALSE, fun = lapply,
-  cl = NULL)
+densifyCluster(F, CL, ctrl, weight = 10, info = FALSE,
+  cores = getOption("simLife.mc", 1L), cl = NULL)
 }
 \arguments{
 \item{F}{non-overlapping particle system}
@@ -18,7 +18,8 @@ densifyCluster(F, CL, ctrl, weight = 10, info = FALSE, fun = lapply,
 
 \item{info}{optional, logical, if TRUE return result from \code{GenSA} call}
 
-\item{fun}{optional, either \code{lapply} (default) or parllel processing by \code{mclapply}}
+\item{cores}{optional, number of cores for mulicore parallization with \code{cores=1L} (default) by \code{mclapply} which 
+also can be set by a global option "\code{simLife.mc}"}
 
 \item{cl}{optional, parallel cluster object}
 }
@@ -49,9 +50,9 @@ the \code{weight} factor iteratively and run it again if some objects happen to 
 
 library(unfoldr)
 
-## Not on MS-Windows	
-# library("parallel")
-# options(mc.cores=2L)
+## Unless MS-Windows platform	
+# library(parallel)
+# options(simLife.mc=2L)
  
 # simulation box either this kind of list
 # or use object spatstat::box3 
@@ -96,7 +97,7 @@ cat("cluster length: ",length(CLUST),"\\n")
 # some controls for 'GenSA'
 ctrl <- list(threshold.stop=0.01,max.call=10000)
 # densify region to clustered particles
-RET <- densifyCluster(RSA, CLUST, ctrl, weight=100,cl = NULL)	
+RET <- densifyCluster(RSA, CLUST, ctrl, weight=100, cores = 1L, cl = NULL)	
 
 S <- RET$S
 CL <- RET$cluster
