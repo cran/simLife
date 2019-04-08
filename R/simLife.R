@@ -373,13 +373,14 @@ simDefect <- function(stress,S,CLT,opt) {
 	aOut <- (((opt$vickers + 120)/stress*opt$outAreafactor)^12)/opt$scale
 
 	env <- environment()
-	tryCatch(
-		.Call(C_SimDefect,as.character(substitute(S,S)),CLT,
-				opt$distTol,aIn,aOut,opt$Tmax,opt$pl,env)
-		, error = function(e) {
-					structure(e,class=c("error","condition"),
-					 error=simpleError(.makeMessage("Error in cluster construction.\n")))
-				  }
+	tryCatch({
+		ret <- .Call(C_SimDefect,as.character(substitute(S,S)),CLT,
+						opt$distTol,aIn,aOut,opt$Tmax,opt$pl,env)
+		structure(ret,"aIn"=aIn,"aOut"=aOut)
+	}, error = function(e) {
+		structure(e,class=c("error","condition"),
+			 error=simpleError(.makeMessage("Error in cluster construction.\n")))
+		}
 	)
 }
 

@@ -111,7 +111,6 @@ SEXP convexHull(SEXP R_points) {
 
   UNPROTECT(1);
   return R_H;
-
 }
 
 /**
@@ -485,10 +484,18 @@ SEXP convert_R_result(typename STGM::ClusterList<T>::Type &cl, const siminfo_t &
       UNPROTECT(8);
   }
 
-  setAttrib(R_cl, install("aIn"), ScalarReal(info.areaIn));
-  setAttrib(R_cl, install("aOut"), ScalarReal(info.areaOut));
-  setAttrib(R_cl, install("areaMax"), ScalarReal(info.areaMax));
-  setAttrib(R_cl, install("maxSize"), ScalarInteger(maxSize));
+  SEXP R_maxSize, R_areaMax;
+  PROTECT(R_maxSize = allocVector(REALSXP,1));
+  PROTECT(R_areaMax = allocVector(REALSXP,1));
+  REAL(R_maxSize)[0] = maxSize;
+  REAL(R_areaMax)[0] = info.areaMax;
+  setAttrib(R_cl, install("maxSize"),R_maxSize);
+  setAttrib(R_cl, install("areaMax"),R_areaMax);
+  UNPROTECT(2);
+
+  //setAttrib(R_cl, install("aIn"), ScalarReal(info.areaIn));
+  //setAttrib(R_cl, install("aOut"), ScalarReal(info.areaOut));
+  //setAttrib(R_cl, install("areaMax"), ScalarReal(info.areaMax));
 
   UNPROTECT(1);
   return R_cl;

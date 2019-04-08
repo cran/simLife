@@ -64,7 +64,7 @@
 	ret <- list()
 	for(i in 1:(length(S)-1)) {
 		for(k in (i+1):length(S)) {
-			if(FUNCTION(S[[i]],S[[k]])) # if overlerapping then add
+			if(isTRUE(FUNCTION(S[[i]],S[[k]]))) # if overlerapping then add
 			  ret <- c(ret,k)
 		}
 	}
